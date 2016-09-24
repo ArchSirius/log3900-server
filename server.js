@@ -17,9 +17,7 @@ app.use(morgan('dev'));
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'jade');
-app.set('view options', {
-    layout: false
-});
+app.set('view options', { layout: false });
 app.use(express.static(__dirname + '/public'));
 
 require('./routes.js')(app);

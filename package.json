@@ -6,6 +6,7 @@
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "jade": ">= 0.26.1",
+    "jsonwebtoken": "^7.1.9",
     "lodash": "^4.16.1",
     "mongoose": "^4.6.1",
     "morgan": "^1.7.0",
