@@ -44,43 +44,48 @@ var userNames = (function() {
 
 // export function for listening to the socket
 module.exports = function (socket) {
-	getUser(socket.decoded_token).then(user => {
-		var name = user.username;
-		userNames.claim(name);
-
-		// send the new user their name and a list of users
-		socket.emit('init', {
-			name: name,
-			users: userNames.get(),
+	var name = '';
+	// broadcast a user's message to other users
+	socket.on('send:message', function (data) {
+		socket.broadcast.emit('send:message', {
+			user: name,
+			text: data.message,
 			time: new Date()
 		});
+	});
 
-		// notify other clients that a new user has joined
-		socket.broadcast.emit('user:join', {
+	// clean up when a user leaves, and broadcast it to other users
+	socket.on('disconnect', function () {
+		socket.broadcast.emit('user:left', {
 			name: name,
 			time: new Date()
 		});
+		userNames.free(name);
+	});
 
-		// broadcast a user's message to other users
-		socket.on('send:message', function (data) {
-			socket.broadcast.emit('send:message', {
-				user: name,
-				text: data.message,
+	socket.on('reserve:name', function (data) {
+		if (userNames.claim(data.name)) {
+			name = data.name;
+			socket.emit('reserve:name', {
+				success: true
+			});
+			// send the new user their name and a list of users
+			socket.emit('init', {
+				name: name,
+				users: userNames.get(),
 				time: new Date()
 			});
-		});
 
-		// clean up when a user leaves, and broadcast it to other users
-		socket.on('disconnect', function () {
-			socket.broadcast.emit('user:left', {
+			// notify other clients that a new user has joined
+			socket.broadcast.emit('user:join', {
 				name: name,
 				time: new Date()
 			});
-			userNames.free(name);
-		});
+		}
+		else {
+			socket.emit('reserve:name', {
+				success: false
+			});
+		}
 	});
 };
-
-function getUser(token) {
-	return User.findById(token._id);
-}
