@@ -56,13 +56,11 @@ module.exports = function (socket) {
 			text: data.message,
 			time: new Date().getTime()
 		});
-		// modification par PO d'ici....
 		socket.emit('send:message', {
 			user: name,
 			text: data.message,
-			time: new Date()
+			time: new Date().getTime()
 		});
-		// jusqu'ici.
 	});
 
 	// clean up when a user leaves, and broadcast it to other users
