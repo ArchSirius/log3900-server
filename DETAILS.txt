@@ -1,0 +1,205 @@
+/*************************
+* LOG3900-01 A16 backend *
+* API 29/09/16           *
+*************************/
+
+/*
+* User
+*/
+GET    /api/users
+POST   /api/users
+GET    /api/users/me
+GET    /api/users/:id
+PUT    /api/users/:id
+DELETE /api/users/:id
+PUT    /api/users/:id/password
+
+/*
+* Zone
+*/
+GET    /api/zones
+POST   /api/zones
+GET    /api/zones/:id
+PUT    /api/zones/:id
+DELETE /api/zones/:id
+
+/*
+* Auth
+*/
+POST   /auth/login
+
+
+/*************************
+* LOG3900-01 A16 backend *
+* Socket.io 29/09/16     *
+*************************/
+
+/*
+* Client->Server
+*/
+connect
+disconnect
+reserve:name
+send:message
+
+/*
+* Server->Client
+*/
+connect
+init
+reserve:name
+send:message
+user:join
+user:left
+
+
+/*************************
+* LOG3900-01 A16 backend *
+* API details            *
+*************************/
+
+/*****************
+* GET /api/users *
+*****************/
+Description : Returns a list of user profiles
+Restrictions: --
+Headers     : --
+Body        : --
+Returns     : Users profiles
+
+/******************
+* POST /api/users *
+******************/
+Description : Creates a new user and returns details and token if success
+Restrictions: --
+Headers     : --
+Body        : username [String] [not null] [unique check]
+            : email    [String] [not null] [unique check]
+            : password [String] [not null]
+Returns     : User details and Token
+
+/********************
+* GET /api/users/me *
+********************/
+Description : Returns user details
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : --
+Returns     : User details
+
+/*********************
+* GET /api/users/:id *
+*********************/
+Description : Returns user profile
+Restrictions: --
+Headers     : --
+Body        : --
+Returns     : User profile
+
+/*************************
+* PUT /api/users/:userId *
+*************************/
+Description : Updates user info
+Restrictions: Authenticated
+            : User match
+Headers     : x-access-token
+Body        : username [String] [unique check]
+            : email    [String] [unique check]
+Returns     : User details
+
+/************************
+* DELETE /api/users/:id *
+************************/
+Description : Deletes users
+Restrictions: Authenticated
+            : User match
+Headers     : x-access-token
+Body        : --
+Returns     : Success
+
+/******************************
+* PUT /api/users/:id/password *
+******************************/
+Description : Changes user password
+Restrictions: Authenticated
+            : User match
+Headers     : x-access-token
+Body        : oldPassword [String]
+            : newPassword [String]
+Returns     : Success
+
+
+/*************************
+* LOG3900-01 A16 backend *
+* Socket.io details      *
+* Client->Server         *
+*************************/
+
+/**********
+* connect *
+**********/
+Description: Request a Socket.io connection
+Body       : --
+
+/*************
+* disconnect *
+*************/
+Description: Terminate a Socket.io connection
+Body       : --
+
+/***************
+* reserve:name *
+***************/
+Description: Reserve a chat username
+Body       : name [String]
+
+/***************
+* send:message *
+***************/
+Description: Send a message to the chat
+Body       : message [String]
+
+
+/*************************
+* LOG3900-01 A16 backend *
+* Socket.io details      *
+* Server->Client         *
+*************************/
+
+/**********
+* connect *
+**********/
+Description: Accept a Socket.io connection
+Body       : --
+
+/*******
+* init *
+*******/
+Description: Initialize an accepted Socket.io connection with username 'name' and connected users 'users'
+Body       : name  [String]
+           : users [Array]
+
+/***************
+* reserve:name *
+***************/
+Description: Tell the user if username is accepted
+Body       : success [Boolean]
+
+/***************
+* send:message *
+***************/
+Description: Send a message 'text' from user 'user' to the chat
+Body       : user [String]
+           : text [String]
+
+/************
+* user:join *
+************/
+Description: Tell a user of username 'name' has joined
+Body       : name [String]
+
+/************
+* user:left *
+************/
+Description: Tell a user of username 'name' has left
+Body       : name [String]
