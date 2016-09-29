@@ -1,4 +1,4 @@
-var User    = require('./app/user/user.model.js');
+var User = require('./app/user/user.model.js');
 
 const MAXCONNECTION = 4;
 var connections = 0;
@@ -24,7 +24,6 @@ var userNames = (function() {
 		for (user in names) {
 			res.push(user);
 		}
-		console.log('get()');
 		return res;
 	};
 
@@ -50,7 +49,7 @@ module.exports = function (socket) {
 		socket.broadcast.emit('send:message', {
 			user: name,
 			text: data.message,
-			time: new Date()
+			time: new Date().getTime()
 		});
 		// modification par PO d'ici....
 		socket.emit('send:message', {
@@ -65,7 +64,7 @@ module.exports = function (socket) {
 	socket.on('disconnect', function () {
 		socket.broadcast.emit('user:left', {
 			name: name,
-			time: new Date()
+			time: new Date().getTime()
 		});
 		userNames.free(name);
 	});
@@ -74,24 +73,26 @@ module.exports = function (socket) {
 		if (userNames.claim(data.name)) {
 			name = data.name;
 			socket.emit('reserve:name', {
-				success: true
+				success: true,
+				time: new Date().getTime()
 			});
 			// send the new user their name and a list of users
 			socket.emit('init', {
 				name: name,
 				users: userNames.get(),
-				time: new Date()
+				time: new Date().getTime()
 			});
 
 			// notify other clients that a new user has joined
 			socket.broadcast.emit('user:join', {
 				name: name,
-				time: new Date()
+				time: new Date().getTime()
 			});
 		}
 		else {
 			socket.emit('reserve:name', {
-				success: false
+				success: false,
+				time: new Date().getTime()
 			});
 		}
 	});
