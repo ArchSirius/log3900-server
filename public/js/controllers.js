@@ -61,12 +61,6 @@ function AppCtrl($scope, socket) {
       message: $scope.message
     });
 
-    // add the message to our model locally
-    $scope.messages.push({
-      user: $scope.name,
-      text: $scope.message
-    });
-
     // clear message box
     $scope.message = '';
   };
