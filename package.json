@@ -2,7 +2,14 @@
   "name": "angular-socket-io-im",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "start": "better-npm-run start",
+    "restart": "better-npm-run restart",
+    "stop": "better-npm-run stop",
+    "stop": "better-npm-run stop"
+  },
   "dependencies": {
+    "better-npm-run": "0.0.11",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "jade": ">= 0.26.1",
@@ -12,5 +19,16 @@
     "morgan": "^1.7.0",
     "socket.io": ">= 0.9.6",
     "socketio-jwt": "^4.5.0"
+  },
+  "betterScripts": {
+    "start": {
+      "command": "echo `cat /dev/null > ${PWD}/logs/out.log` && forever start -l ${PWD}/logs/forever.log -o ${PWD}/logs/out.log -e ${PWD}/logs/errors.log -a server.js"
+    },
+    "restart": {
+      "command": "forever restart server.js"
+    },
+    "stop": {
+      "command": "forever stop server.js"
+    }
   }
 }

@@ -10,6 +10,16 @@ First, grab the dependencies with npm:
 
 Then run the server like so:
 
-    node server.js
+    npm start
 
-And navigate to `localhost:5000`
+## Restart or stop the server
+
+To restart the server:
+
+    npm restart
+
+To stop the server:
+
+    npm stop
+
+And navigate to http://localhost:5000
