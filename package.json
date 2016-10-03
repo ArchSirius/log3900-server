@@ -5,11 +5,11 @@
   "scripts": {
     "start": "better-npm-run start",
     "restart": "better-npm-run restart",
-    "stop": "better-npm-run stop",
     "stop": "better-npm-run stop"
   },
   "dependencies": {
     "better-npm-run": "0.0.11",
+    "bluebird": "^3.4.6",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "jade": ">= 0.26.1",
