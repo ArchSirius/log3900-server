@@ -56,11 +56,6 @@ module.exports = function (socket) {
 			text: data.message,
 			time: new Date().getTime()
 		});
-		socket.emit('send:message', {
-			user: name,
-			text: data.message,
-			time: new Date().getTime()
-		});
 	});
 
 	// clean up when a user leaves, and broadcast it to other users
