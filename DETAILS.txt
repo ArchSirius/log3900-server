@@ -1,6 +1,6 @@
 /*************************
 * LOG3900-01 A16 backend *
-* API 29/09/16           *
+* API 03/10/16           *
 *************************/
 
 /*
@@ -75,6 +75,7 @@ Restrictions: --
 Headers     : --
 Body        : username [String] [not null] [unique check]
             : email    [String] [not null] [unique check]
+            : name     [String]
             : password [String] [not null]
 Returns     : User details and Token
 
@@ -105,6 +106,7 @@ Restrictions: Authenticated
 Headers     : x-access-token
 Body        : username [String] [unique check]
             : email    [String] [unique check]
+            : name     [String]
 Returns     : User details
 
 /************************
