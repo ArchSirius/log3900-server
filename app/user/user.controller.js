@@ -1,6 +1,7 @@
 'use strict';
 
 var User = require('./user.model');
+var auth = require('../../auth/auth.service')
 
 function validationError(res, statusCode) {
   statusCode = statusCode || 422;
@@ -18,12 +19,18 @@ function handleError(res, statusCode) {
 
 /**
  * Get list of users
- * restriction: 'admin'
  */
 exports.index = function(req, res) {
   return User.find({}, '-salt -password').exec()
     .then(users => {
-      res.status(200).json(users);
+      users.forEach((user, index) => {
+        users[index] = user.profile;
+      });
+      res.status(200).json({
+        success: true,
+        time: new Date().getTime(),
+        data: users
+      });
     })
     .catch(handleError(res));
 }
@@ -33,14 +40,17 @@ exports.index = function(req, res) {
  */
 exports.create = function(req, res, next) {
   var newUser = new User(req.body);
-  newUser.provider = 'local';
-  newUser.role = 'user';
   newUser.save()
     .then(function(user) {
-      var token = jwt.sign({ _id: user._id }, config.secrets.session, {
-        expiresIn: 60 * 60 * 5
+      var token = auth.signToken(user);
+      res.status(200).json({
+        success: true,
+        time: new Date().getTime(),
+        data: {
+          user: user.profile,
+          token: token
+        }
       });
-      res.json({ token });
     })
     .catch(validationError(res));
 }
@@ -54,16 +64,23 @@ exports.show = function(req, res, next) {
   return User.findById(userId).exec()
     .then(user => {
       if (!user) {
-        return res.status(404).end();
+        return res.status(404).json({
+          success: false,
+          time: new Date().getTime(),
+          message: 'User not found.'
+        });
       }
-      res.json(user.profile);
+      res.status(200).json({
+        success: false,
+        time: new Date().getTime(),
+        data: user.profile
+      });
     })
     .catch(err => next(err));
 }
 
 /**
  * Deletes a user
- * restriction: 'admin'
  */
 exports.destroy = function(req, res) {
   return User.findByIdAndRemove(req.params.id).exec()
@@ -77,7 +94,8 @@ exports.destroy = function(req, res) {
  * Change a users password
  */
 exports.changePassword = function(req, res, next) {
-  var userId = req.user._id;
+  var userId = req.params.id;
+  console.log(userId);
   var oldPass = String(req.body.oldPassword);
   var newPass = String(req.body.newPassword);
 
@@ -87,11 +105,19 @@ exports.changePassword = function(req, res, next) {
         user.password = newPass;
         return user.save()
           .then(() => {
-            res.status(204).end();
+            res.status(200).json({
+              success: true,
+              time: new Date().getTime()
+            });
           })
           .catch(validationError(res));
-      } else {
-        return res.status(403).end();
+      }
+      else {
+        return res.status(403).json({
+          success: false,
+          time: new Date().getTime(),
+          message: 'Authentication failed.'
+        });
       }
     });
 }
@@ -100,19 +126,27 @@ exports.changePassword = function(req, res, next) {
  * Update user infos
  */
 exports.update = function(req, res, next) {
-  var userId = req.body._id;
-  var newEmail = String(req.body.email);
-  var newRole = String(req.body.role);
-  var newName = String(req.body.name);
+  var userId = req.decoded._id;
 
-  User.findByIdAsync(userId)
+  User.findOne({ _id: userId }, '-salt -password').exec()
     .then(user => {
-      user.email = newEmail;
-      user.role = newRole;
-      user.name = newName;
-      return user.saveAsync()
+      if (req.body.hasOwnProperty('username')) {
+        user.username = req.body.username;
+      }
+      if (req.body.hasOwnProperty('email')) {
+        user.email = req.body.email;
+      }
+      if (req.body.hasOwnProperty('name')) {
+        user.name = req.body.name;
+      }
+
+      return user.save()
         .then(() => {
-          res.status(204).end();
+          res.status(200).json({
+            success: true,
+            time: new Date().getTime(),
+            data: user
+          });
         })
         .catch(validationError(res));
     });
@@ -122,14 +156,22 @@ exports.update = function(req, res, next) {
  * Get my info
  */
 exports.me = function(req, res, next) {
-  var userId = req.user._id;
+  var userId = req.decoded._id;
 
   return User.findOne({ _id: userId }, '-salt -password').exec()
     .then(user => { // don't ever give out the password or salt
       if (!user) {
-        return res.status(401).end();
+        return res.status(401).json({
+          success: false,
+          time: new Date().getTime(),
+          message: 'User not found.'
+        });
       }
-      return res.json(user);
+      return res.json({
+        success: true,
+        time: new Date().getTime(),
+        data: user
+      });
     })
     .catch(err => next(err));
 }

@@ -9,20 +9,16 @@ var UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  name: String,
   email: {
     type: String,
     lowercase: true,
     required: true
   },
-  role: {
-    type: String,
-    default: 'user'
-  },
   password: {
     type: String,
     required: true
   },
-  provider: String,
   salt: String
 });
 
@@ -36,7 +32,7 @@ UserSchema
   .get(function() {
     return {
       'username': this.username,
-      'role':this.role
+      'name': this.name
     };
   });
 
@@ -45,8 +41,7 @@ UserSchema
   .virtual('token')
   .get(function() {
     return {
-      '_id': this._id,
-      'role': this.role
+      '_id': this._id
     };
   });
 

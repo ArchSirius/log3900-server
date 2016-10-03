@@ -1,15 +1,16 @@
 'use strict';
 
-var express = require('express');
+var express    = require('express');
 var controller = require('./user.controller');
-var router = express.Router();
+var auth       = require('../../auth/auth.service');
+var router     = express.Router();
 
-router.get('/', /*auth.hasRole('admin'),*/ controller.index);
-router.delete('/:id', /*auth.hasRole('admin'),*/ controller.destroy);
-router.get('/me', /*auth.isAuthenticated(),*/ controller.me);
-router.put('/:id/password', /*auth.isAuthenticated(),*/ controller.changePassword);
-router.put('/:id', /*auth.hasRole('admin'),*/ controller.update);
-router.get('/:id', /*auth.isAuthenticated(),*/ controller.show);
+router.get('/', auth.isAuthenticated, controller.index);
+router.delete('/:id', auth.isAuthenticated, auth.isSelf, controller.destroy);
+router.get('/me', auth.isAuthenticated, controller.me);
+router.put('/:id/password', auth.isAuthenticated, auth.isSelf, controller.changePassword);
+router.put('/:id', auth.isAuthenticated, auth.isSelf, controller.update);
+router.get('/:id', auth.isAuthenticated, controller.show);
 router.post('/', controller.create);
 
 module.exports = router;

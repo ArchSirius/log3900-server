@@ -9,7 +9,6 @@ var userNames = (function() {
 
 	var claim = function (name) {
 		connections++;
-		console.log('claim(\'' + name + '\')');
 		if (!name || names[name]) {
 			return false;
 		}
@@ -46,15 +45,16 @@ module.exports = function (socket) {
 	var name = '';
 	// broadcast a user's message to other users
 	socket.on('send:message', function (data) {
+		var time = new Date().getTime();
 		socket.broadcast.emit('send:message', {
 			user: name,
 			text: data.message,
-			time: new Date().getTime()
+			time: time
 		});
 		socket.emit('send:message', {
 			user: name,
 			text: data.message,
-			time: new Date().getTime()
+			time: time
 		});
 	});
 
@@ -91,7 +91,7 @@ module.exports = function (socket) {
 		else {
 			socket.emit('reserve:name', {
 				success: false,
-				time: new Date().getTime()
+				time: time
 			});
 		}
 	});

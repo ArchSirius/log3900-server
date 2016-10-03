@@ -6,6 +6,7 @@ The server for the communication prototype for LOG3900 project.
 
 First, grab the dependencies with npm:
 
+    npm install -g forever
     npm install
 
 Then run the server like so:
