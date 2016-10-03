@@ -68,17 +68,18 @@ module.exports = function (socket) {
 	});
 
 	socket.on('reserve:name', function (data) {
+		var time = new Date().getTime();
 		if (userNames.claim(data.name)) {
 			name = data.name;
 			socket.emit('reserve:name', {
 				success: true,
-				time: new Date().getTime()
+				time: time
 			});
 			// send the new user their name and a list of users
 			socket.emit('init', {
 				name: name,
 				users: userNames.get(),
-				time: new Date().getTime()
+				time: time
 			});
 
 			// notify other clients that a new user has joined
