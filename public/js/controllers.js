@@ -3,13 +3,11 @@
 /* Controllers */
 function AppCtrl($scope, socket) {
 
-  var TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1N2Q5Yjc3NDRjNWQ2ZmRkMGM3OGMyZWEiLCJyb2xlIjoidXNlciIsImlhdCI6MTQ3NDQ5MjI1OCwiZXhwIjoxNDc5Njc2MjU4fQ.J4_RDmP7_uqhD78mKli6VYZF3ZfWr0rPiimvgPzkL2k';
-
   // Socket listeners
   // ================
 
   socket.on('connect', function () {
-    socket.emit('authenticate', {token: TEST_TOKEN});
+    socket.emit('reserve:name', { name: 'TEST' });
   });
 
   socket.on('init', function (data) {
@@ -46,6 +44,10 @@ function AppCtrl($scope, socket) {
     }
   });
 
+  socket.on('reserve:name', function (message) {
+    console.log(message);
+  });
+
   // Private helpers
   // ===============
 
@@ -57,12 +59,6 @@ function AppCtrl($scope, socket) {
   $scope.sendMessage = function () {
     socket.emit('send:message', {
       message: $scope.message
-    });
-
-    // add the message to our model locally
-    $scope.messages.push({
-      user: $scope.name,
-      text: $scope.message
     });
 
     // clear message box

@@ -97,6 +97,28 @@ exports.changePassword = function(req, res, next) {
 }
 
 /**
+ * Update user infos
+ */
+exports.update = function(req, res, next) {
+  var userId = req.body._id;
+  var newEmail = String(req.body.email);
+  var newRole = String(req.body.role);
+  var newName = String(req.body.name);
+
+  User.findByIdAsync(userId)
+    .then(user => {
+      user.email = newEmail;
+      user.role = newRole;
+      user.name = newName;
+      return user.saveAsync()
+        .then(() => {
+          res.status(204).end();
+        })
+        .catch(validationError(res));
+    });
+}
+
+/**
  * Get my info
  */
 exports.me = function(req, res, next) {
