@@ -1,3 +1,14 @@
+/**
+ * Using Rails-like standard naming convention for endpoints.
+ * GET     /api/users              ->  index
+ * POST    /api/users              ->  create
+ * GET     /api/users/me           ->  me
+ * GET     /api/users/:id          ->  show
+ * PUT     /api/users/:id          ->  update
+ * DELETE  /api/users/:id          ->  destroy
+ * PUT     /api/users/:id/password ->  password
+ */
+
 'use strict';
 
 var _    = require('lodash');
@@ -68,6 +79,7 @@ function handleError(res, statusCode) {
 
 /**
  * Get list of users
+ * restriction: authenticated
  */
 exports.index = function(req, res) {
   return User.find({}, '-salt -password').exec()
@@ -97,6 +109,7 @@ exports.create = function(req, res) {
 
 /**
  * Get a single user
+ * restriction: authenticated
  */
 exports.show = function(req, res) {
   return User.findById(req.params.id).exec()
@@ -113,6 +126,8 @@ exports.show = function(req, res) {
 
 /**
  * Deletes a user
+ * restriction: authenticated
+ * restriction: self
  */
 exports.destroy = function(req, res) {
   return User.findByIdAndRemove(req.params.id).exec()
@@ -127,6 +142,8 @@ exports.destroy = function(req, res) {
 
 /**
  * Change a users password
+ * restriction: authenticated
+ * restriction: self
  */
 exports.changePassword = function(req, res) {
   var oldPass = String(req.body.oldPassword);
@@ -159,6 +176,7 @@ exports.changePassword = function(req, res) {
 
 /**
  * Update user infos
+ * restriction: authenticated
  */
 exports.update = function(req, res) {
   if (req.body.hasOwnProperty('_id')) {
@@ -173,6 +191,8 @@ exports.update = function(req, res) {
 
 /**
  * Get my info
+ * restriction: authenticated
+ * restriction: self
  */
 exports.me = function(req, res) {
   return User.findOne({ _id: req.decoded._id }, '-salt -password').exec()
