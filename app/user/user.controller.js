@@ -95,7 +95,6 @@ exports.destroy = function(req, res) {
  */
 exports.changePassword = function(req, res, next) {
   var userId = req.params.id;
-  console.log(userId);
   var oldPass = String(req.body.oldPassword);
   var newPass = String(req.body.newPassword);
 

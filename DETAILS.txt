@@ -1,6 +1,6 @@
 /*************************
 * LOG3900-01 A16 backend *
-* API 03/10/16           *
+* API 06/10/16           *
 *************************/
 
 /*
@@ -62,8 +62,8 @@ user:left
 * GET /api/users *
 *****************/
 Description : Returns a list of user profiles
-Restrictions: --
-Headers     : --
+Restrictions: Authenticated
+Headers     : x-access-token
 Body        : --
 Returns     : Users profiles
 
