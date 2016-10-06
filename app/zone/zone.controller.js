@@ -9,7 +9,7 @@
 
 'use strict';
 
-var _ = require('lodash');
+var _    = require('lodash');
 var Zone = require('./zone.model');
 
 function respondWithResult(res, statusCode) {

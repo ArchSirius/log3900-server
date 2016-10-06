@@ -1,7 +1,56 @@
 'use strict';
 
+var _    = require('lodash');
 var User = require('./user.model');
 var auth = require('../../auth/auth.service')
+
+function respondWithResult(res, statusCode) {
+  statusCode = statusCode || 200;
+  return function(entity) {
+    if (entity) {
+      return res.status(statusCode).json({
+        success: true,
+        time: new Date().getTime(),
+        data: entity
+      });
+    }
+  };
+}
+
+function saveUpdates(updates) {
+  return function(entity) {
+    var updated = _.extend(entity, updates);
+    return updated.save()
+      .then(updated => {
+        return updated;
+      });
+  };
+}
+
+function removeEntity(res) {
+  return function(entity) {
+    if (entity) {
+      return entity.remove()
+        .then(() => {
+          res.status(204).end();
+        });
+    }
+  };
+}
+
+function handleEntityNotFound(res) {
+  return function(entity) {
+    if (!entity) {
+      res.status(404).json({
+        success: false,
+        time: new Date().getTime(),
+        message: 'User not found.'
+      });
+      return null;
+    }
+    return entity;
+  };
+}
 
 function validationError(res, statusCode) {
   statusCode = statusCode || 422;
@@ -26,57 +75,40 @@ exports.index = function(req, res) {
       users.forEach((user, index) => {
         users[index] = user.profile;
       });
-      res.status(200).json({
-        success: true,
-        time: new Date().getTime(),
-        data: users
-      });
+      return users;
     })
+    .then(respondWithResult(res))
     .catch(handleError(res));
 }
 
 /**
  * Creates a new user
  */
-exports.create = function(req, res, next) {
+exports.create = function(req, res) {
   var newUser = new User(req.body);
-  newUser.save()
+  return newUser.save()
     .then(function(user) {
       var token = auth.signToken(user);
-      res.status(200).json({
-        success: true,
-        time: new Date().getTime(),
-        data: {
-          user: user.profile,
-          token: token
-        }
-      });
+      return { user: user, token: token };
     })
+    .then(respondWithResult(res, 201))
     .catch(validationError(res));
 }
 
 /**
  * Get a single user
  */
-exports.show = function(req, res, next) {
-  var userId = req.params.id;
-
-  return User.findById(userId).exec()
+exports.show = function(req, res) {
+  return User.findById(req.params.id).exec()
+    .then(handleEntityNotFound(res))
     .then(user => {
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          time: new Date().getTime(),
-          message: 'User not found.'
-        });
+      if (user) {
+        user = user.profile
       }
-      res.status(200).json({
-        success: false,
-        time: new Date().getTime(),
-        data: user.profile
-      });
+      return user;
     })
-    .catch(err => next(err));
+    .then(respondWithResult(res))
+    .catch(handleError(res));
 }
 
 /**
@@ -84,8 +116,11 @@ exports.show = function(req, res, next) {
  */
 exports.destroy = function(req, res) {
   return User.findByIdAndRemove(req.params.id).exec()
-    .then(function() {
-      res.status(204).end();
+    .then(() => {
+      res.status(204).json({
+        success: true,
+        time: new Date().getTime()
+      });
     })
     .catch(handleError(res));
 }
@@ -93,12 +128,12 @@ exports.destroy = function(req, res) {
 /**
  * Change a users password
  */
-exports.changePassword = function(req, res, next) {
-  var userId = req.params.id;
+exports.changePassword = function(req, res) {
   var oldPass = String(req.body.oldPassword);
   var newPass = String(req.body.newPassword);
 
-  return User.findById(userId).exec()
+  return User.findById(req.params.id).exec()
+    .then(handleEntityNotFound(res))
     .then(user => {
       if (user.authenticate(oldPass)) {
         user.password = newPass;
@@ -118,61 +153,32 @@ exports.changePassword = function(req, res, next) {
           message: 'Authentication failed.'
         });
       }
-    });
+    })
+    .catch(handleError(res));
 }
 
 /**
  * Update user infos
  */
-exports.update = function(req, res, next) {
-  var userId = req.decoded._id;
-
-  User.findOne({ _id: userId }, '-salt -password').exec()
-    .then(user => {
-      if (req.body.hasOwnProperty('username')) {
-        user.username = req.body.username;
-      }
-      if (req.body.hasOwnProperty('email')) {
-        user.email = req.body.email;
-      }
-      if (req.body.hasOwnProperty('name')) {
-        user.name = req.body.name;
-      }
-
-      return user.save()
-        .then(() => {
-          res.status(200).json({
-            success: true,
-            time: new Date().getTime(),
-            data: user
-          });
-        })
-        .catch(validationError(res));
-    });
+exports.update = function(req, res) {
+  if (req.body.hasOwnProperty('_id')) {
+    delete req.body._id;
+  }
+  User.findOne({ _id: req.params.id }, '-salt -password').exec()
+    .then(handleEntityNotFound(res))
+    .then(saveUpdates(req.body))
+    .then(respondWithResult(res))
+    .catch(validationError(res));
 }
 
 /**
  * Get my info
  */
-exports.me = function(req, res, next) {
-  var userId = req.decoded._id;
-
-  return User.findOne({ _id: userId }, '-salt -password').exec()
-    .then(user => { // don't ever give out the password or salt
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          time: new Date().getTime(),
-          message: 'User not found.'
-        });
-      }
-      return res.json({
-        success: true,
-        time: new Date().getTime(),
-        data: user
-      });
-    })
-    .catch(err => next(err));
+exports.me = function(req, res) {
+  return User.findOne({ _id: req.decoded._id }, '-salt -password').exec()
+    .then(handleEntityNotFound(res))
+    .then(respondWithResult(res)) // don't ever give out the password or salt
+    .catch(validationError(res));
 }
 
 /**
