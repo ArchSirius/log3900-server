@@ -8,6 +8,7 @@ exports.authenticate = function(req, res) {
 		if (err) {
 			return res.status(500).json({
 				success: false,
+				time: new Date().getTime(),
 				message: 'An error has occured.',
 				err: err
 			});
@@ -16,6 +17,7 @@ exports.authenticate = function(req, res) {
 		if (!user) {
 			return res.status(404).json({
 				success: false,
+				time: new Date().getTime(),
 				message: 'Authentication failed. User not found.'
 			});
 		}
@@ -25,11 +27,13 @@ exports.authenticate = function(req, res) {
 			if (user.facebookId) {
 				return res.status(401).json({
 					success: false,
+					time: new Date().getTime(),
 					message: 'Authentication failed. Try to login with Facebook then reset your password.'
 				});
 			}
 			return res.status(401).json({
 				success: false,
+				time: new Date().getTime(),
 				message: 'Authentication failed. Wrong password.'
 			});
 		}
@@ -40,6 +44,7 @@ exports.authenticate = function(req, res) {
 		// return the information including token as JSON
 		return res.status(200).json({
 			success: true,
+			time: new Date().getTime(),
 			data: {
 				token: token,
 				user: user.details
@@ -58,6 +63,7 @@ exports.isAuthenticated = function(req, res, next) {
 			if (err) {
 				return res.status(403).json({
 					success: false,
+					time: new Date().getTime(),
 					message: 'Failed to authenticate token.'
 				});
 			}
@@ -73,6 +79,7 @@ exports.isAuthenticated = function(req, res, next) {
 		// return an error
 		return res.status(403).json({
 			success: false, 
+			time: new Date().getTime(),
 			message: 'No token provided.'
 		});
 	}
@@ -86,6 +93,7 @@ exports.isSelf = function(req, res, next) {
 		else {
 			return res.status(403).json({
 				success: false,
+				time: new Date().getTime(),
 				message: 'User ID mismatch.'
 			});
 		}
@@ -93,6 +101,7 @@ exports.isSelf = function(req, res, next) {
 	else {
 		return res.status(400).json({
 			success: false,
+			time: new Date().getTime(),
 			message: 'Invalid parameters.'
 		});
 	}

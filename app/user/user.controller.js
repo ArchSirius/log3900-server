@@ -1,6 +1,67 @@
+/**
+ * Using Rails-like standard naming convention for endpoints.
+ * GET     /api/users              ->  index
+ * POST    /api/users              ->  create
+ * GET     /api/users/me           ->  me
+ * GET     /api/users/:id          ->  show
+ * PUT     /api/users/:id          ->  update
+ * DELETE  /api/users/:id          ->  destroy
+ * PUT     /api/users/:id/password ->  password
+ */
+
 'use strict';
 
+var _    = require('lodash');
 var User = require('./user.model');
+var auth = require('../../auth/auth.service')
+
+function respondWithResult(res, statusCode) {
+  statusCode = statusCode || 200;
+  return function(entity) {
+    if (entity) {
+      return res.status(statusCode).json({
+        success: true,
+        time: new Date().getTime(),
+        data: entity
+      });
+    }
+  };
+}
+
+function saveUpdates(updates) {
+  return function(entity) {
+    var updated = _.extend(entity, updates);
+    return updated.save()
+      .then(updated => {
+        return updated;
+      });
+  };
+}
+
+function removeEntity(res) {
+  return function(entity) {
+    if (entity) {
+      return entity.remove()
+        .then(() => {
+          res.status(204).end();
+        });
+    }
+  };
+}
+
+function handleEntityNotFound(res) {
+  return function(entity) {
+    if (!entity) {
+      res.status(404).json({
+        success: false,
+        time: new Date().getTime(),
+        message: 'User not found.'
+      });
+      return null;
+    }
+    return entity;
+  };
+}
 
 function validationError(res, statusCode) {
   statusCode = statusCode || 422;
@@ -18,120 +79,126 @@ function handleError(res, statusCode) {
 
 /**
  * Get list of users
- * restriction: 'admin'
+ * restriction: authenticated
  */
 exports.index = function(req, res) {
   return User.find({}, '-salt -password').exec()
     .then(users => {
-      res.status(200).json(users);
+      users.forEach((user, index) => {
+        users[index] = user.profile;
+      });
+      return users;
     })
+    .then(respondWithResult(res))
     .catch(handleError(res));
 }
 
 /**
  * Creates a new user
  */
-exports.create = function(req, res, next) {
+exports.create = function(req, res) {
   var newUser = new User(req.body);
-  newUser.provider = 'local';
-  newUser.role = 'user';
-  newUser.save()
+  return newUser.save()
     .then(function(user) {
-      var token = jwt.sign({ _id: user._id }, config.secrets.session, {
-        expiresIn: 60 * 60 * 5
-      });
-      res.json({ token });
+      var token = auth.signToken(user);
+      return { user: user, token: token };
     })
+    .then(respondWithResult(res, 201))
     .catch(validationError(res));
 }
 
 /**
  * Get a single user
+ * restriction: authenticated
  */
-exports.show = function(req, res, next) {
-  var userId = req.params.id;
-
-  return User.findById(userId).exec()
+exports.show = function(req, res) {
+  return User.findById(req.params.id).exec()
+    .then(handleEntityNotFound(res))
     .then(user => {
-      if (!user) {
-        return res.status(404).end();
+      if (user) {
+        user = user.profile
       }
-      res.json(user.profile);
+      return user;
     })
-    .catch(err => next(err));
+    .then(respondWithResult(res))
+    .catch(handleError(res));
 }
 
 /**
  * Deletes a user
- * restriction: 'admin'
+ * restriction: authenticated
+ * restriction: self
  */
 exports.destroy = function(req, res) {
   return User.findByIdAndRemove(req.params.id).exec()
-    .then(function() {
-      res.status(204).end();
+    .then(() => {
+      res.status(204).json({
+        success: true,
+        time: new Date().getTime()
+      });
     })
     .catch(handleError(res));
 }
 
 /**
  * Change a users password
+ * restriction: authenticated
+ * restriction: self
  */
-exports.changePassword = function(req, res, next) {
-  var userId = req.user._id;
+exports.changePassword = function(req, res) {
   var oldPass = String(req.body.oldPassword);
   var newPass = String(req.body.newPassword);
 
-  return User.findById(userId).exec()
+  return User.findById(req.params.id).exec()
+    .then(handleEntityNotFound(res))
     .then(user => {
       if (user.authenticate(oldPass)) {
         user.password = newPass;
         return user.save()
           .then(() => {
-            res.status(204).end();
+            res.status(200).json({
+              success: true,
+              time: new Date().getTime()
+            });
           })
           .catch(validationError(res));
-      } else {
-        return res.status(403).end();
       }
-    });
+      else {
+        return res.status(403).json({
+          success: false,
+          time: new Date().getTime(),
+          message: 'Authentication failed.'
+        });
+      }
+    })
+    .catch(handleError(res));
 }
 
 /**
  * Update user infos
+ * restriction: authenticated
  */
-exports.update = function(req, res, next) {
-  var userId = req.body._id;
-  var newEmail = String(req.body.email);
-  var newRole = String(req.body.role);
-  var newName = String(req.body.name);
-
-  User.findByIdAsync(userId)
-    .then(user => {
-      user.email = newEmail;
-      user.role = newRole;
-      user.name = newName;
-      return user.saveAsync()
-        .then(() => {
-          res.status(204).end();
-        })
-        .catch(validationError(res));
-    });
+exports.update = function(req, res) {
+  if (req.body.hasOwnProperty('_id')) {
+    delete req.body._id;
+  }
+  User.findOne({ _id: req.params.id }, '-salt -password').exec()
+    .then(handleEntityNotFound(res))
+    .then(saveUpdates(req.body))
+    .then(respondWithResult(res))
+    .catch(validationError(res));
 }
 
 /**
  * Get my info
+ * restriction: authenticated
+ * restriction: self
  */
-exports.me = function(req, res, next) {
-  var userId = req.user._id;
-
-  return User.findOne({ _id: userId }, '-salt -password').exec()
-    .then(user => { // don't ever give out the password or salt
-      if (!user) {
-        return res.status(401).end();
-      }
-      return res.json(user);
-    })
-    .catch(err => next(err));
+exports.me = function(req, res) {
+  return User.findOne({ _id: req.decoded._id }, '-salt -password').exec()
+    .then(handleEntityNotFound(res))
+    .then(respondWithResult(res)) // don't ever give out the password or salt
+    .catch(validationError(res));
 }
 
 /**
