@@ -1,6 +1,8 @@
 'use strict';
 
-var mongoose = require('mongoose');
+var crypto       = require('crypto');
+var mongoose     = require('mongoose');
+mongoose.Promise = require('bluebird');
 
 var NodeSchema = new mongoose.Schema({
   id: {
@@ -78,6 +80,27 @@ var ZoneSchema = new mongoose.Schema({
     updatedAt: 'updatedAt'
   }
 });
+
+/**
+ * Virtuals
+ */
+
+// Public profile information
+ZoneSchema
+  .virtual('public')
+  .get(function() {
+    return {
+      'name': this.name,
+      'private': this.private,
+      'thumbnail': this.thumbnail,
+      'stats': this.stats,
+      'nodes': this.nodes,
+      'createdAt': this.createdAt,
+      'updatedAt': this.updatedAt,
+      'createdBy': this.createdBy,
+      'updatedBy': this.updatedBy
+    };
+  });
 
 /**
  * Validations

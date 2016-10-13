@@ -55,7 +55,7 @@ user:left
 
 /*************************
 * LOG3900-01 A16 backend *
-* API details            *
+* User API details       *
 *************************/
 
 /*****************
@@ -91,7 +91,7 @@ Returns     : User details
 /*********************
 * GET /api/users/:id *
 *********************/
-Description : Returns user profile
+Description : Returns a user profile
 Restrictions: --
 Headers     : --
 Body        : --
@@ -100,7 +100,7 @@ Returns     : User profile
 /*************************
 * PUT /api/users/:userId *
 *************************/
-Description : Updates user info
+Description : Updates a user infos
 Restrictions: Authenticated
             : User match
 Headers     : x-access-token
@@ -112,7 +112,7 @@ Returns     : User details
 /************************
 * DELETE /api/users/:id *
 ************************/
-Description : Deletes users
+Description : Deletes a user
 Restrictions: Authenticated
             : User match
 Headers     : x-access-token
@@ -128,6 +128,66 @@ Restrictions: Authenticated
 Headers     : x-access-token
 Body        : oldPassword [String]
             : newPassword [String]
+Returns     : Success
+
+
+/*************************
+* LOG3900-01 A16 backend *
+* Zone API details       *
+*************************/
+
+/*****************
+* GET /api/zones *
+*****************/
+Description : Returns a list of zones
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : --
+Returns     : Zones
+
+/******************
+* POST /api/zones *
+******************/
+Description : Creates a new zone
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : name      [String] [not null]
+            : private   [Boolean]
+            : password  [String]
+            : thumbnail [String]
+            : nodes     [Array]
+Returns     : Created zone
+
+/*********************
+* GET /api/zones/:id *
+*********************/
+Description : Returns a zone
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : --
+Returns     : Zone infos
+
+/*************************
+* PUT /api/zones/:userId *
+*************************/
+Description : Updates a zone infos
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : name      [String] [not null]
+            : private   [Boolean]
+            : password  [String]
+            : thumbnail [String]
+            : stats     not yet implemented
+            : nodes     [Array]
+Returns     : Zone infos
+
+/************************
+* DELETE /api/zones/:id *
+************************/
+Description : Deletes a zone
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : --
 Returns     : Success
 
 

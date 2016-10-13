@@ -43,7 +43,10 @@ function removeEntity(res) {
     if (entity) {
       return entity.remove()
         .then(() => {
-          res.status(204).end();
+          res.status(204).json({
+            success: true,
+            time: new Date().getTime()
+          });
         });
     }
   };
@@ -97,9 +100,10 @@ exports.index = function(req, res) {
  * Creates a new user
  */
 exports.create = function(req, res) {
-  var newUser = new User(req.body);
-  return newUser.save()
-    .then(function(user) {
+  return User.create(req.body)
+    .then(user => {
+      user.salt = undefined;
+      user.password = undefined;
       var token = auth.signToken(user);
       return { user: user, token: token };
     })
@@ -112,7 +116,7 @@ exports.create = function(req, res) {
  * restriction: authenticated
  */
 exports.show = function(req, res) {
-  return User.findById(req.params.id).exec()
+  return User.findById(req.params.id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
     .then(user => {
       if (user) {
@@ -130,13 +134,9 @@ exports.show = function(req, res) {
  * restriction: self
  */
 exports.destroy = function(req, res) {
-  return User.findByIdAndRemove(req.params.id).exec()
-    .then(() => {
-      res.status(204).json({
-        success: true,
-        time: new Date().getTime()
-      });
-    })
+  return User.findById(req.params.id, '-salt -password').exec()
+    .then(handleEntityNotFound(res))
+    .then(removeEntity(res))
     .catch(handleError(res));
 }
 
@@ -182,7 +182,7 @@ exports.update = function(req, res) {
   if (req.body.hasOwnProperty('_id')) {
     delete req.body._id;
   }
-  User.findOne({ _id: req.params.id }, '-salt -password').exec()
+  User.findById(req.params.id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
     .then(saveUpdates(req.body))
     .then(respondWithResult(res))
@@ -195,9 +195,9 @@ exports.update = function(req, res) {
  * restriction: self
  */
 exports.me = function(req, res) {
-  return User.findOne({ _id: req.decoded._id }, '-salt -password').exec()
+  return User.findById(req.decoded._id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
-    .then(respondWithResult(res)) // don't ever give out the password or salt
+    .then(respondWithResult(res))
     .catch(validationError(res));
 }
 

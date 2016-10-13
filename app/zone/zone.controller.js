@@ -16,7 +16,11 @@ function respondWithResult(res, statusCode) {
   statusCode = statusCode || 200;
   return function(entity) {
     if (entity) {
-      return res.status(statusCode).json(entity);
+      return res.status(statusCode).json({
+        success: true,
+        time: new Date().getTime(),
+        data: entity
+      });
     }
   };
 }
@@ -59,46 +63,80 @@ function handleError(res, statusCode) {
   };
 }
 
-// Gets a list of Zones
+/**
+ * Get list of zones
+ * restriction: authenticated
+ */
 exports.index = function(req, res) {
-  return Zone.find().exec()
+  return Zone.find({}, '-salt -password').exec()
+    .then(zones => {
+      zones.forEach((zone, index) => {
+        zones[index] = zone.public;
+      });
+      return zones;
+    })
     .then(respondWithResult(res))
     .catch(handleError(res));
 }
 
-// Gets a single Zone from the DB
+/**
+ * Get a single zone
+ * restriction: authenticated
+ */
 exports.show = function(req, res) {
-  return Zone.findById(req.params.id).exec()
+  return Zone.findById(req.params.id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
+    .then(zone => {
+      if (zone) {
+        zone = zone.public
+      }
+      return zone;
+    })
     .then(respondWithResult(res))
     .catch(handleError(res));
 }
 
-// Creates a new Zone in the DB
+/**
+ * Creates a new zone
+ * restriction: authenticated
+ */
 exports.create = function(req, res) {
   if (req.body.hasOwnProperty('_id')) {
     delete req.body._id;
   }
+  req.body.createdBy = req.decoded._id;
   return Zone.create(req.body)
+    .then(zone => {
+      zone.salt = undefined;
+      zone.password = undefined;
+      return zone;
+    })
     .then(respondWithResult(res, 201))
     .catch(handleError(res));
 }
 
-// Updates an existing Zone in the DB
+/**
+ * Updates a zone
+ * restriction: authenticated
+ */
 exports.update = function(req, res) {
   if (req.body.hasOwnProperty('_id')) {
     delete req.body._id;
   }
-  return Zone.findById(req.params.id).exec()
+  req.body.updatedBy = req.decoded._id;
+  return Zone.findById(req.params.id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
     .then(saveUpdates(req.body))
     .then(respondWithResult(res))
     .catch(handleError(res));
 }
 
-// Deletes a Zone from the DB
+/**
+ * Deletes a zone
+ * restriction: authenticated
+ */
 exports.destroy = function(req, res) {
-  return Zone.findById(req.params.id).exec()
+  return Zone.findById(req.params.id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
     .then(removeEntity(res))
     .catch(handleError(res));
