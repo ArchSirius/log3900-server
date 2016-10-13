@@ -2,25 +2,10 @@
 
 The server for the communication prototype for LOG3900 project.
 
-## Running it
+## Backend
 
-First, grab the dependencies with npm:
+The app backend for the clients is located in the directory 'backend/'.
 
-    npm install -g forever
-    npm install
+## Website
 
-Then run the server like so:
-
-    npm start
-
-## Restart or stop the server
-
-To restart the server:
-
-    npm restart
-
-To stop the server:
-
-    npm stop
-
-And navigate to http://localhost:5000
+The browser website is located in the directory 'website/'.
