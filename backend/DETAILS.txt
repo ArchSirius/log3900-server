@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 29/09/16     *
+* Socket.io 17/10/16     *
 *************************/
 
 /*
@@ -41,6 +41,8 @@ connect
 disconnect
 reserve:name
 send:message
+edit:node
+create:node
 
 /*
 * Server->Client
@@ -51,6 +53,8 @@ reserve:name
 send:message
 user:join
 user:left
+edit:node
+create:node
 
 
 /*************************
@@ -221,6 +225,19 @@ Body       : name [String]
 Description: Send a message to the chat
 Body       : message [String]
 
+/************
+* edit:node *
+************/
+Description: Edit a node online
+Body       : zoneId [String]
+           : edit   [Object]
+
+/**************
+* create:node *
+**************/
+Description: Create a node online
+Body       : zoneId [String]
+           : node   [Object]
 
 /*************************
 * LOG3900-01 A16 backend *
@@ -265,3 +282,17 @@ Body       : name [String]
 ************/
 Description: Tell a user of username 'name' has left
 Body       : name [String]
+
+/************
+* edit:node *
+************/
+Description: Send edit request to all listening clients
+Body       : zoneId [String]
+           : edit   [Object]
+
+/**************
+* create:node *
+**************/
+Description: Send create request to all listening clients
+Body       : zoneId [String]
+           : node   [Object]

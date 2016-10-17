@@ -1,4 +1,6 @@
-var User = require('./app/user/user.model.js');
+const User = require('./app/user/user.model');
+const Zone = require('./app/zone/zone.model');
+const _    = require('lodash');
 
 const MAXCONNECTION = 4;
 var connections = 0;
@@ -39,6 +41,17 @@ var userNames = (function() {
 		get: get
 	};
 }());
+
+// from http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+var guid = function() {
+	function s4() {
+		return Math.floor((1 + Math.random()) * 0x10000)
+			.toString(16)
+			.substring(1);
+	}
+	return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+		s4() + '-' + s4() + s4() + s4();
+};
 
 // export function for listening to the socket
 module.exports = function (socket) {
@@ -94,5 +107,120 @@ module.exports = function (socket) {
 				time: time
 			});
 		}
+	});
+
+	socket.on('edit:node', function(data) {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+		const edit = data.edit;
+		Zone.findById(zoneId, '-salt -password').exec()
+		.then(zone => {
+			if (zone) {
+				var node;
+				for (var i = 0; i < zone.nodes.length; ++i) {
+					node = zone.nodes[i];
+					if (node.id === edit.id) {
+						// id and type cannot change
+						// Update position
+						node.position = _.extend(node.position, edit.position);
+						// Update angle
+						node.angle = _.extend(node.angle, edit.angle);
+						// Update angle
+						node.scale = _.extend(node.scale, edit.scale);
+						// parent cannot change
+						// TODO user id
+						// Update timestamp
+						node.updatedAt = time;
+						// Save and emit
+						zone.save();
+						socket.broadcast.emit('edit:node', {
+							zoneId: zoneId,
+							edit: {
+								id: node.id,
+								position: node.position,
+								angle: node.angle,
+								scale: node.scale/*,
+								updatedBy: node.updatedBy*/
+							},
+							time: time
+						});
+						socket.emit('edit:node', {
+							success: true,
+							zoneId: zoneId,
+							edit: {
+								id: node.id,
+								position: node.position,
+								angle: node.angle,
+								scale: node.scale/*,
+								updatedBy: node.updatedBy*/
+							},
+							time: time
+						});
+						break;
+					}
+				}
+			}
+		});
+	});
+
+	socket.on('create:node', function(data) {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+		var node = data.node;
+		Zone.findById(zoneId, '-salt -password').exec()
+		.then(zone => {
+			if (zone) {
+				// Validate/Assign unique id
+				if (!node.id) {
+					node.id = guid();
+				}
+				var idProcess = true;
+				while (idProcess) {
+					var isUnique = true;
+					for (var i = 0; i < zone.nodes.length; ++i) {
+						if (zone.nodes[i].id === node.id) {
+							isUnique = false;
+							break;
+						}
+					}
+					if (isUnique) {
+						idProcess = false;
+					}
+					else {
+						node.id = guid();
+					}
+				}
+
+				const index = zone.nodes.length;
+				node.createdAt = time;
+				node.updatedAt = time;
+				// TODO user id
+				zone.nodes.push(node);
+				zone.save()
+				.then(saved => {
+					node = saved.nodes[index];
+					socket.broadcast.emit('create:node', {
+						zoneId: zoneId,
+						node: node,
+						time: time
+					});
+					socket.emit('create:node', {
+						success: true,
+						zoneId: zoneId,
+						node: node,
+						time: time
+					});
+				})
+				.catch(error => {
+					socket.emit('create:node', {
+						success: false,
+						error: error,
+						zoneId: zoneId,
+						node: node,
+						time: time
+					});
+				});
+			}
+		});
 	});
 };
