@@ -27,6 +27,7 @@ import constants from './app.constants';
 import util from '../components/util/util.module';
 import socket from '../components/socket/socket.service';
 
+import apiCall from '../components/apiCall/apiCall.service';
 import UsersComponent from './users/users.component';
 import ZonesComponent from './zones/zones.component';
 
@@ -34,7 +35,7 @@ import './app.css';
 
 angular.module('log3900App', [ngCookies, ngResource, ngSanitize, 'btford.socket-io', uiRouter,
     uiBootstrap, _Auth, account, admin, navbar, footer, main, constants, socket, util,
-    UsersComponent, ZonesComponent
+    apiCall, UsersComponent, ZonesComponent
   ])
   .config(routeConfig)
   .run(function($rootScope, $location, Auth) {

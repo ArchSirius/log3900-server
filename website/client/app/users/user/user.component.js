@@ -7,8 +7,23 @@ import routes from './user.routes';
 
 export class UserComponent {
   /*@ngInject*/
-  constructor() {
-    this.message = 'Hello';
+  constructor($scope, $state, apiCall) {
+    this.$scope = $scope;
+    this.$state = $state;
+    this.apiCall = apiCall;
+
+    $scope.user = {};
+  }
+
+  $onInit() {
+    const id = this.$state.params.id;
+    this.apiCall.getUser(id)
+    .then(result => {
+      console.log(result);  // TEST
+      this.$scope.user = result;
+    }, error => {
+      console.log('error', error);
+    });
   }
 }
 
