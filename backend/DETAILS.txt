@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 17/10/16     *
+* Socket.io 23/10/16     *
 *************************/
 
 /*
@@ -41,8 +41,9 @@ connect
 disconnect
 reserve:name
 send:message
-edit:node
-create:node
+edit:nodes
+create:nodes
+delete:nodes
 
 /*
 * Server->Client
@@ -53,8 +54,9 @@ reserve:name
 send:message
 user:join
 user:left
-edit:node
-create:node
+edit:nodes
+create:nodes
+delete:nodes
 
 
 /*************************
@@ -225,19 +227,26 @@ Body       : name [String]
 Description: Send a message to the chat
 Body       : message [String]
 
-/************
-* edit:node *
-************/
-Description: Edit a node online
+/*************
+* edit:nodes *
+*************/
+Description: Edit nodes online
 Body       : zoneId [String]
-           : edit   [Object]
+           : nodes  [Array]
 
-/**************
-* create:node *
-**************/
-Description: Create a node online
+/***************
+* create:nodes *
+***************/
+Description: Create nodes online
 Body       : zoneId [String]
-           : node   [Object]
+           : nodes  [Array]
+
+/***************
+* delete:nodes *
+***************/
+Description: Delete nodes online
+Body       : zoneId [String]
+           : nodes  [Array]
 
 /*************************
 * LOG3900-01 A16 backend *
@@ -283,16 +292,23 @@ Body       : name [String]
 Description: Tell a user of username 'name' has left
 Body       : name [String]
 
-/************
-* edit:node *
-************/
+/*************
+* edit:nodes *
+*************/
 Description: Send edit request to all listening clients
 Body       : zoneId [String]
-           : edit   [Object]
+           : nodes  [Array]
 
-/**************
-* create:node *
-**************/
+/***************
+* create:nodes *
+***************/
 Description: Send create request to all listening clients
 Body       : zoneId [String]
-           : node   [Object]
+           : nodes  [Array]
+
+/***************
+* delete:nodes *
+***************/
+Description: Send delete request to all listening clients
+Body       : zoneId [String]
+           : nodes  [Array]
