@@ -5,10 +5,6 @@ var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 var NodeSchema = new mongoose.Schema({
-  id: {
-    type: String,
-    required: true
-  },
   type: {
     type: String,
     enum: [ 'COMPOSITE', 'LINE', 'LINE_SEGMENT', 'POLE', 'ROBOT', 'START', 'WALL' ],
@@ -46,8 +42,7 @@ var NodeSchema = new mongoose.Schema({
   timestamps: {
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
-  },
-  _id: false
+  }
 });
 
 var ZoneSchema = new mongoose.Schema({
@@ -80,27 +75,6 @@ var ZoneSchema = new mongoose.Schema({
     updatedAt: 'updatedAt'
   }
 });
-
-/**
- * Virtuals
- */
-
-// Public profile information
-ZoneSchema
-  .virtual('public')
-  .get(function() {
-    return {
-      'name': this.name,
-      'private': this.private,
-      'thumbnail': this.thumbnail,
-      'stats': this.stats,
-      'nodes': this.nodes,
-      'createdAt': this.createdAt,
-      'updatedAt': this.updatedAt,
-      'createdBy': this.createdBy,
-      'updatedBy': this.updatedBy
-    };
-  });
 
 /**
  * Validations

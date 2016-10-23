@@ -42,17 +42,6 @@ var userNames = (function() {
 	};
 }());
 
-// from http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
-var guid = function() {
-	function s4() {
-		return Math.floor((1 + Math.random()) * 0x10000)
-			.toString(16)
-			.substring(1);
-	}
-	return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-		s4() + '-' + s4() + s4() + s4();
-};
-
 // export function for listening to the socket
 module.exports = function (socket) {
 	var name = '';
@@ -109,118 +98,191 @@ module.exports = function (socket) {
 		}
 	});
 
-	socket.on('edit:node', function(data) {
+	socket.on('edit:nodes', data => {
 		const time = new Date().getTime();
 		const zoneId = data.zoneId;
-		const edit = data.edit;
+
+		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
 		.then(zone => {
+			// Apply changes if zone exists
 			if (zone) {
-				var node;
-				for (var i = 0; i < zone.nodes.length; ++i) {
-					node = zone.nodes[i];
-					if (node.id === edit.id) {
-						// id and type cannot change
-						// Update position
-						node.position = _.extend(node.position, edit.position);
-						// Update angle
-						node.angle = _.extend(node.angle, edit.angle);
-						// Update angle
-						node.scale = _.extend(node.scale, edit.scale);
-						// parent cannot change
-						// TODO user id
-						// Update timestamp
-						node.updatedAt = time;
-						// Save and emit
-						zone.save();
-						socket.broadcast.emit('edit:node', {
-							zoneId: zoneId,
-							edit: {
-								id: node.id,
-								position: node.position,
-								angle: node.angle,
-								scale: node.scale/*,
-								updatedBy: node.updatedBy*/
-							},
-							time: time
-						});
-						socket.emit('edit:node', {
-							success: true,
-							zoneId: zoneId,
-							edit: {
-								id: node.id,
-								position: node.position,
-								angle: node.angle,
-								scale: node.scale/*,
-								updatedBy: node.updatedBy*/
-							},
-							time: time
-						});
-						break;
+
+				const userNodes = data.nodes;
+				var updatedNodes = [];
+				// Iterate over user nodes
+				userNodes.forEach(userNode => {
+
+					var localNode;
+					// Iterate over local nodes to find a match
+					for (var i = 0; i < zone.nodes.length; ++i) {
+						localNode = zone.nodes[i];
+						// Find matching node
+						if (String(localNode._id) === String(userNode._id)) {
+
+							// _id and type cannot change
+							// Update position
+							localNode.position = _.extend(localNode.position, userNode.position);
+							// Update angle
+							localNode.angle = _.extend(localNode.angle, userNode.angle);
+							// Update angle
+							localNode.scale = _.extend(localNode.scale, userNode.scale);
+							// parent cannot change
+							// TODO user id
+							// Update timestamp
+							localNode.updatedAt = time;
+
+							// Prepare update
+							updatedNodes.push(minifyNode(localNode));
+
+						}
 					}
-				}
-			}
+
+				});
+
+				// Save and emit
+				zone.save();
+				socket.broadcast.emit('edit:nodes', {
+					zoneId: zoneId,
+					nodes: updatedNodes,
+					time: time
+				});
+				socket.emit('edit:nodes', {
+					success: true,
+					zoneId: zoneId,
+					nodes: updatedNodes,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('edit:nodes', updatedNodes.length + ' nodes in ' + (end - time) + ' ms');
+
+			} // If zone does not exist, abort
 		});
 	});
 
-	socket.on('create:node', function(data) {
+	socket.on('create:nodes', data => {
 		const time = new Date().getTime();
 		const zoneId = data.zoneId;
-		var node = data.node;
+
+		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
 		.then(zone => {
+			// Apply changes if zone exists
 			if (zone) {
-				// Validate/Assign unique id
-				if (!node.id) {
-					node.id = guid();
-				}
-				var idProcess = true;
-				while (idProcess) {
-					var isUnique = true;
-					for (var i = 0; i < zone.nodes.length; ++i) {
-						if (zone.nodes[i].id === node.id) {
-							isUnique = false;
-							break;
-						}
-					}
-					if (isUnique) {
-						idProcess = false;
-					}
-					else {
-						node.id = guid();
-					}
-				}
 
 				const index = zone.nodes.length;
-				node.createdAt = time;
-				node.updatedAt = time;
-				// TODO user id
-				zone.nodes.push(node);
+				const userNodes = data.nodes;
+				// Iterate over user nodes
+				userNodes.forEach(node => {
+
+					node.createdAt = time;
+					node.updatedAt = time;
+					// TODO user id
+
+					zone.nodes.push(node);
+
+				});
+
+				// Save and emit
 				zone.save()
 				.then(saved => {
-					node = saved.nodes[index];
-					socket.broadcast.emit('create:node', {
+					// Return created nodes with simple structure
+					const nodes = saved.nodes.slice(index).map(minifyNode);
+					socket.broadcast.emit('create:nodes', {
 						zoneId: zoneId,
-						node: node,
+						nodes: nodes,
 						time: time
 					});
-					socket.emit('create:node', {
+					socket.emit('create:nodes', {
 						success: true,
 						zoneId: zoneId,
-						node: node,
+						nodes: nodes,
 						time: time
 					});
+
+					// Log performance
+					const end = new Date().getTime();
+					console.log('create:nodes', nodes.length + ' nodes in ' + (end - time) + ' ms');
+
 				})
 				.catch(error => {
-					socket.emit('create:node', {
+					socket.emit('create:nodes', {
 						success: false,
 						error: error,
 						zoneId: zoneId,
-						node: node,
+						nodes: nodes,
 						time: time
 					});
 				});
-			}
+
+			} // If zone does not exist, abort
 		});
 	});
+
+	socket.on('delete:nodes', data => {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+
+		// Find the edited zone
+		Zone.findById(zoneId, '-salt -password').exec()
+		.then(zone => {
+			// Apply changes if zone exists
+			if (zone) {
+
+				const userNodes = data.nodes;
+				var deletedNodes = [];
+				// Iterate over user nodes
+				userNodes.forEach(userNode => {
+
+					var localNode;
+					// Iterate over local nodes to find a match
+					for (var i = 0; i < zone.nodes.length; ++i) {
+						localNode = zone.nodes[i];
+						// Find matching node
+						if (String(localNode._id) === String(userNode._id)) {
+
+							// Delete
+							zone.nodes.splice(i, 1);
+
+							// Delete and prepare update
+							deletedNodes.push({ _id: localNode._id });
+
+						}
+					}
+
+				});
+
+				// Save and emit
+				zone.save();
+				socket.broadcast.emit('delete:nodes', {
+					zoneId: zoneId,
+					nodes: deletedNodes,
+					time: time
+				});
+				socket.emit('delete:nodes', {
+					success: true,
+					zoneId: zoneId,
+					nodes: deletedNodes,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('delete:nodes', deletedNodes.length + ' nodes in ' + (end - time) + ' ms');
+
+			} // If zone does not exist, abort
+		});
+	});
+};
+
+var minifyNode = function(node) {
+	return {
+		_id: node._id,
+		position: node.position,
+		angle: node.angle,
+		scale: node.scale/*,
+		updatedBy: node.updatedBy*/
+	};
 };
