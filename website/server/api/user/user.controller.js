@@ -20,7 +20,6 @@ function handleError(res, statusCode) {
 
 /**
  * Get list of users
- * restriction: 'admin'
  */
 export function index(req, res) {
   return User.find({}, '-salt -password').exec()
@@ -48,12 +47,28 @@ export function create(req, res) {
 }
 
 /**
- * Get a single user
+ * Get a single user by id
  */
 export function show(req, res, next) {
   var userId = req.params.id;
 
   return User.findById(userId).exec()
+    .then(user => {
+      if(!user) {
+        return res.status(404).end();
+      }
+      res.json(user.profile);
+    })
+    .catch(err => next(err));
+}
+
+/**
+ * Get a single user by username
+ */
+export function findByUsername(req, res, next) {
+  var username = req.params.username;
+
+  return User.findOne({ username : username }).exec()
     .then(user => {
       if(!user) {
         return res.status(404).end();

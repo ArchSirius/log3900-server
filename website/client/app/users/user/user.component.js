@@ -16,8 +16,8 @@ export class UserComponent {
   }
 
   $onInit() {
-    const id = this.$state.params.id;
-    this.apiCall.getUser(id)
+    const username = this.$state.params.username;
+    this.apiCall.getUserByUsername(username)
     .then(result => {
       console.log(result);  // TEST
       this.$scope.user = result;
