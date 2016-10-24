@@ -61,7 +61,7 @@ UserSchema
   .path('username')
   .validate(function(username) {
     return username.length;
-  }, 'Username cannot be blank');
+  }, 'Le nom d\'utilisateur ne peut être vide.');
 
 
 // Validate empty email
@@ -69,14 +69,14 @@ UserSchema
   .path('email')
   .validate(function(email) {
     return email.length;
-  }, 'Email cannot be blank');
+  }, 'L\'adresse courriel ne peut petre vide.');
 
 // Validate empty password
 UserSchema
   .path('password')
   .validate(function(password) {
     return password.length;
-  }, 'Password cannot be blank');
+  }, 'Le mot de passe ne peut être vide.');
 
 // Validate username is not taken
 UserSchema
@@ -97,7 +97,7 @@ UserSchema
       .catch(function(err) {
         throw err;
       });
-  }, 'The specified username is already in use.');
+  }, 'Ce nom d\'utilisateur est déjà utilisé.');
 
 // Validate email is not taken
 UserSchema
@@ -116,7 +116,7 @@ UserSchema
       .catch(function(err) {
         throw err;
       });
-  }, 'The specified email address is already in use.');
+  }, 'Cette adresse courriel est déjà utilisée.');
 
 var validatePresenceOf = function(value) {
   return value && value.length;
