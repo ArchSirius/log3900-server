@@ -40,7 +40,7 @@ var NodeSchema = new Schema({
     type: Number,
     default: 0.0
   },
-  parent: String/*,
+  parent: Schema.Types.ObjectId/*,
   createdBy: {
     type: Schema.Types.ObjectId/
     required: true
