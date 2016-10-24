@@ -17,14 +17,13 @@ export class UsersComponent {
     $scope.users = [];
 
     $scope.select = function(user) {
-      $state.go('user', { 'id' : user._id });
+      $state.go('user', { 'username' : user.username });
     };
   }
 
   $onInit() {
     this.apiCall.getUsers()
     .then(result => {
-      console.log(result);  // TEST
       this.$scope.users = result;
     }, error => {
       console.log('error', error);
