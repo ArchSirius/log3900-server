@@ -2,6 +2,7 @@
 
 class _User {
   _id = '';
+  username = '';
   name = '';
   email = '';
   role = '';

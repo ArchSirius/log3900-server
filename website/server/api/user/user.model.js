@@ -5,6 +5,10 @@ mongoose.Promise = require('bluebird');
 import mongoose, {Schema} from 'mongoose';
 
 var UserSchema = new Schema({
+  username: {
+    type: String,
+    required: true
+  },
   name: String,
   email: {
     type: String,
@@ -32,6 +36,7 @@ UserSchema
   .virtual('profile')
   .get(function() {
     return {
+      username: this.username,
       name: this.name,
       role: this.role
     };
@@ -51,19 +56,48 @@ UserSchema
  * Validations
  */
 
+ // Validate empty username
+UserSchema
+  .path('username')
+  .validate(function(username) {
+    return username.length;
+  }, 'Le nom d\'utilisateur ne peut être vide.');
+
+
 // Validate empty email
 UserSchema
   .path('email')
   .validate(function(email) {
     return email.length;
-  }, 'Email cannot be blank');
+  }, 'L\'adresse courriel ne peut petre vide.');
 
 // Validate empty password
 UserSchema
   .path('password')
   .validate(function(password) {
     return password.length;
-  }, 'Password cannot be blank');
+  }, 'Le mot de passe ne peut être vide.');
+
+// Validate username is not taken
+UserSchema
+  .path('username')
+  .validate(function(value, respond) {
+    var self = this;
+
+    return this.constructor.findOne({ username: value }).exec()
+      .then(function(user) {
+        if (user) {
+          if (self.id === user.id) {
+            return respond(true);
+          }
+          return respond(false);
+        }
+        return respond(true);
+      })
+      .catch(function(err) {
+        throw err;
+      });
+  }, 'Ce nom d\'utilisateur est déjà utilisé.');
 
 // Validate email is not taken
 UserSchema
@@ -82,7 +116,7 @@ UserSchema
       .catch(function(err) {
         throw err;
       });
-  }, 'The specified email address is already in use.');
+  }, 'Cette adresse courriel est déjà utilisée.');
 
 var validatePresenceOf = function(value) {
   return value && value.length;

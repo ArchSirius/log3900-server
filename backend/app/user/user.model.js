@@ -89,7 +89,7 @@ UserSchema
       .catch(function(err) {
         throw err;
       });
-  }, 'The specified username address is already in use.');
+  }, 'The specified username is already in use.');
 
 // Validate email is not taken
 UserSchema
