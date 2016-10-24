@@ -71,7 +71,8 @@ exports.index = function(req, res) {
   return Zone.find({}, '-salt -password').exec()
     .then(zones => {
       zones.forEach((zone, index) => {
-        zones[index] = zone.public;
+        zones[index].salt = undefined;
+        zones[index].password = undefined;
       });
       return zones;
     })
@@ -88,7 +89,8 @@ exports.show = function(req, res) {
     .then(handleEntityNotFound(res))
     .then(zone => {
       if (zone) {
-        zone = zone.public
+        zone.salt = undefined;
+        zone.password = undefined;
       }
       return zone;
     })
