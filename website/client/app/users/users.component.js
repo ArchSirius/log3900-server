@@ -9,8 +9,26 @@ import UserComponent from './user/user.component';
 
 export class UsersComponent {
   /*@ngInject*/
-  constructor() {
-    this.message = 'Hello';
+  constructor($scope, $state, apiCall) {
+    this.$scope = $scope;
+    this.$state = $state;
+    this.apiCall = apiCall;
+
+    $scope.users = [];
+
+    $scope.select = function(user) {
+      $state.go('user', { 'id' : user._id });
+    };
+  }
+
+  $onInit() {
+    this.apiCall.getUsers()
+    .then(result => {
+      console.log(result);  // TEST
+      this.$scope.users = result;
+    }, error => {
+      console.log('error', error);
+    });
   }
 }
 

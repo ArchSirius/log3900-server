@@ -7,8 +7,23 @@ import routes from './zone.routes';
 
 export class ZoneComponent {
   /*@ngInject*/
-  constructor() {
-    this.message = 'Hello';
+  constructor($scope, $state, apiCall) {
+    this.$scope = $scope;
+    this.$state = $state;
+    this.apiCall = apiCall;
+
+    $scope.zone = {};
+  }
+
+  $onInit() {
+    const id = this.$state.params.id;
+    this.apiCall.getZone(id)
+    .then(result => {
+      console.log(result);  // TEST
+      this.$scope.zone = result;
+    }, error => {
+      console.log('error', error);
+    });
   }
 }
 
