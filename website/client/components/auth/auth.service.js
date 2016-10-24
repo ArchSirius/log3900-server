@@ -36,11 +36,11 @@ export function AuthService($location, $http, $cookies, $q, appConfig, Util, Use
      * @return {Promise}
      */
     login({
-      email,
+      username,
       password
     }, callback) {
       return $http.post('/auth/local', {
-        email,
+        username,
         password
       })
         .then(res => {
