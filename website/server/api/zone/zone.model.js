@@ -5,10 +5,6 @@ mongoose.Promise = require('bluebird');
 import mongoose, {Schema} from 'mongoose';
 
 var NodeSchema = new Schema({
-  id: {
-    type: String,
-    required: true
-  },
   type: {
     type: String,
     enum: [
@@ -54,8 +50,7 @@ var NodeSchema = new Schema({
   timestamps: {
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
-  },
-  _id: false
+  }
 });
 
 var ZoneSchema = new Schema({
