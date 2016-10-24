@@ -4,6 +4,7 @@ import angular from 'angular';
 
 export default class SignupController {
   user = {
+    username: '',
     name: '',
     email: '',
     password: ''
@@ -23,6 +24,7 @@ export default class SignupController {
 
     if(form.$valid) {
       return this.Auth.createUser({
+        username: this.user.username,
         name: this.user.name,
         email: this.user.email,
         password: this.user.password
@@ -40,6 +42,12 @@ export default class SignupController {
             this.errors[field] = error.message;
           });
         });
+    }
+  }
+
+  removeError(field) {
+    if (Object.getOwnPropertyNames(field.$error).length !== 0) {
+      field.$setValidity('mongoose', true);
     }
   }
 }
