@@ -1,1 +1,58 @@
-<div>This is the zones view.</div>
+<div class="container">
+
+  <h1 class="page-header">Zones de simulation</h1>
+
+  <div class="table-responsive">
+    <table class="table table-striped table-hover">
+
+      <thead>
+        <tr>
+          <th>
+            Nom
+          </th>
+          <th>
+            Créateur
+          </th>
+          <th>
+            Date de création
+          </th>
+          <th>
+            Dernière modification
+          </th>
+          <th>
+            Privée
+          </th>
+          <th>
+            Aperçu
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr ng-click="select(zone)" ng-repeat="zone in zones | orderBy:'name'">
+          <td>
+            {{ zone.name }}
+          </td>
+          <td>
+            {{ zone.creator.username }}
+          </td>
+          <td>
+            {{ zone.createdAt | date }}
+          </td>
+          <td>
+            {{ zone.updatedAt | date }}
+            <span ng-if="zone.updator"><br/>par {{ zone.updator.username }}</span>
+          </td>
+          <td>
+            {{ zone.private ? "Privée" : "" }}
+          </td>
+          <td>
+            <img ng-if="zone.thumbnail" src="{{ zone.thumbnail }}" width="120" heigth="60"/>
+          </td>
+        </tr>
+      </tbody>
+
+    </table>
+  </div>
+
+</div>
