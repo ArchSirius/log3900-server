@@ -3,6 +3,7 @@
 import User from './user.model';
 import config from '../../config/environment';
 import jwt from 'jsonwebtoken';
+import _ from 'lodash';
 
 function validationError(res, statusCode) {
   statusCode = statusCode || 422;
@@ -127,6 +128,29 @@ export function me(req, res, next) {
       res.json(user);
     })
     .catch(err => next(err));
+}
+
+// Upserts the given User in the DB at the specified ID
+export function updateUserInfos(req, res) {
+  const userId = req.user._id;
+  if(req.body._id) {
+    delete req.body._id;
+  }
+  if(req.body.salt) {
+    delete req.body.salt;
+  }
+  if(req.body.password) {
+    delete req.body.password;
+  }
+  return User.findById(userId).exec()
+    .then(user => {
+      user = _.extend(user, req.body);
+      return user.save()
+        .then(() => {
+          res.status(204).end();
+        })
+        .catch(validationError(res));
+    });
 }
 
 /**

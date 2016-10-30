@@ -5,6 +5,7 @@ export default function($stateProvider) {
   $stateProvider
     .state('user', {
       url: '/user/:username',
-      template: '<user></user>'
+      template: '<user></user>',
+      authenticate: true
     });
 }
