@@ -4,12 +4,13 @@ const _    = require('lodash');
 
 const MAXCONNECTION = 4;
 var connections = 0;
+var lockedNodes = {};
 
 var userNames = (function() {
 
 	var names = {};
 
-	var claim = function (name) {
+	var join = function(name) {
 		connections++;
 		if (!name || names[name]) {
 			return false;
@@ -28,7 +29,7 @@ var userNames = (function() {
 		return res;
 	};
 
-	var free = function(name) {
+	var leave = function(name) {
 		connections--;
 		if (names[name]) {
 			delete names[name];
@@ -36,25 +37,48 @@ var userNames = (function() {
 	};
 
 	return {
-		claim: claim,
-		free: free,
+		join: join,
+		leave: leave,
 		get: get
 	};
 }());
 
 // export function for listening to the socket
 module.exports = function (socket) {
-	var name = '';
+	const userId = socket.decoded_token._id;
+	var username = '';
+	// Fetch user infos
+	User.findById(userId)
+	.then(user => {
+		username = user.username;
+		userNames.join(username);
+
+		var time = new Date().getTime();
+
+		// send the new user their name and a list of users
+		socket.emit('init', {
+			name: username,
+			users: userNames.get(),
+			time: time
+		});
+
+		// notify other clients that a new user has joined
+		socket.broadcast.emit('user:join', {
+			name: username,
+			time: time
+		});
+	});
+
 	// broadcast a user's message to other users
 	socket.on('send:message', function (data) {
 		var time = new Date().getTime();
 		socket.broadcast.emit('send:message', {
-			user: name,
+			user: username,
 			text: data.message,
 			time: time
 		});
 		socket.emit('send:message', {
-			user: name,
+			user: username,
 			text: data.message,
 			time: time
 		});
@@ -63,40 +87,12 @@ module.exports = function (socket) {
 	// clean up when a user leaves, and broadcast it to other users
 	socket.on('disconnect', function () {
 		socket.broadcast.emit('user:left', {
-			name: name,
+			name: username,
 			time: new Date().getTime()
 		});
-		userNames.free(name);
+		userNames.leave(username);
 	});
 
-	socket.on('reserve:name', function (data) {
-		var time = new Date().getTime();
-		if (userNames.claim(data.name)) {
-			name = data.name;
-			socket.emit('reserve:name', {
-				success: true,
-				time: time
-			});
-			// send the new user their name and a list of users
-			socket.emit('init', {
-				name: name,
-				users: userNames.get(),
-				time: time
-			});
-
-			// notify other clients that a new user has joined
-			socket.broadcast.emit('user:join', {
-				name: name,
-				time: new Date().getTime()
-			});
-		}
-		else {
-			socket.emit('reserve:name', {
-				success: false,
-				time: time
-			});
-		}
-	});
 
 	socket.on('edit:nodes', data => {
 		const time = new Date().getTime();
@@ -119,22 +115,26 @@ module.exports = function (socket) {
 						localNode = zone.nodes[i];
 						// Find matching node
 						if (String(localNode._id) === String(userNode._id)) {
+							// Edit if node is not locked
+							if (hasAccess(zone, localNode, userId)) {
 
-							// _id and type cannot change
-							// Update position
-							localNode.position = _.extend(localNode.position, userNode.position);
-							// Update angle
-							localNode.angle = _.extend(localNode.angle, userNode.angle);
-							// Update angle
-							localNode.scale = _.extend(localNode.scale, userNode.scale);
-							// parent cannot change
-							// TODO user id
-							// Update timestamp
-							localNode.updatedAt = time;
+								// _id and type cannot change
+								// Update position
+								localNode.position = _.extend(localNode.position, userNode.position);
+								// Update angle
+								localNode.angle = _.extend(localNode.angle, userNode.angle);
+								// Update angle
+								localNode.scale = _.extend(localNode.scale, userNode.scale);
+								// parent cannot change
+								// Update updatedBy
+								localNode.updatedBy = userId;
+								// Update timestamp
+								localNode.updatedAt = time;
 
-							// Prepare update
-							updatedNodes.push(minifyNode(localNode));
+								// Prepare update
+								updatedNodes.push(minifyNode(localNode));
 
+							}
 						}
 					}
 
@@ -179,7 +179,8 @@ module.exports = function (socket) {
 
 					node.createdAt = time;
 					node.updatedAt = time;
-					// TODO user id
+					node.createdBy = userId;
+					node.updatedBy = userId;
 
 					zone.nodes.push(node);
 
@@ -242,13 +243,16 @@ module.exports = function (socket) {
 						localNode = zone.nodes[i];
 						// Find matching node
 						if (String(localNode._id) === String(userNode._id)) {
+							// Delete if node is not locked
+							if (hasAccess(zone, localNode, userId)) {
 
-							// Delete
-							zone.nodes.splice(i, 1);
+								// Delete
+								zone.nodes.splice(i, 1);
 
-							// Delete and prepare update
-							deletedNodes.push({ _id: localNode._id });
+								// Delete and prepare update
+								deletedNodes.push({ _id: localNode._id });
 
+							}
 						}
 					}
 
@@ -275,6 +279,74 @@ module.exports = function (socket) {
 			} // If zone does not exist, abort
 		});
 	});
+
+	socket.on('lock:nodes', data => {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+
+		// Find the edited zone
+		Zone.findById(zoneId, '-salt -password').exec()
+		.then(zone => {
+			// Apply changes if zone exists
+			if (zone) {
+
+				const userNodes = data.nodes;
+				const newLock = lockNodes(zone, userNodes, userId);
+
+				// Save and emit
+				socket.broadcast.emit('lock:nodes', {
+					zoneId: zoneId,
+					nodes: newLock,
+					time: time
+				});
+				socket.emit('lock:nodes', {
+					success: true,
+					zoneId: zoneId,
+					nodes: newLock,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
+
+			} // If zone does not exist, abort
+		});
+	});
+
+	socket.on('unlock:nodes', data => {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+
+		// Find the edited zone
+		Zone.findById(zoneId, '-salt -password').exec()
+		.then(zone => {
+			// Apply changes if zone exists
+			if (zone) {
+
+				const userNodes = data.nodes;
+				const newUnlock = unlockNodes(zone, userNodes, userId);
+
+				// Save and emit
+				socket.broadcast.emit('unlock:nodes', {
+					zoneId: zoneId,
+					nodes: newUnlock,
+					time: time
+				});
+				socket.emit('unlock:nodes', {
+					success: true,
+					zoneId: zoneId,
+					nodes: newUnlock,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
+
+			} // If zone does not exist, abort
+		});
+	});
 };
 
 var minifyNode = function(node) {
@@ -282,7 +354,53 @@ var minifyNode = function(node) {
 		_id: node._id,
 		position: node.position,
 		angle: node.angle,
-		scale: node.scale/*,
-		updatedBy: node.updatedBy*/
+		scale: node.scale,
+		updatedBy: node.updatedBy
 	};
+};
+
+var isNodeLocked = function(zone, node) {
+	return !_.isEmpty(lockedNodes[zone._id]) &&
+		   lockedNodes[zone._id][String(node._id)];
+};
+
+var isNodeOwner = function(zone, node, userId) {
+	return !_.isEmpty(lockedNodes[zone._id]) &&
+		   String(lockedNodes[zone._id][String(node._id)]) === String(userId);
+};
+
+var hasAccess = function(zone, node, userId) {
+	return !isNodeLocked(zone, node) ||
+		   isNodeOwner(zone, node, userId);
+};
+
+var lockNodes = function(zone, nodes, userId) {
+	if (!lockedNodes[zone._id]) {
+		lockedNodes[zone._id] = {};
+	}
+	var newLock = [];
+	nodes.forEach(node => {
+		if (!isNodeLocked(zone, node)) {
+			lockedNodes[zone._id][String(node._id)] = String(userId);
+			newLock.push({ _id: node._id });
+		}
+	});
+	return newLock;
+};
+
+var unlockNodes = function(zone, nodes, userId) {
+	if (!lockedNodes[zone._id]) {
+		return;
+	}
+	var newUnlock = [];
+	nodes.forEach(node => {
+		if (isNodeLocked(zone, node) && isNodeOwner(zone, node, userId)) {
+			delete lockedNodes[zone._id][String(node._id)];
+			newUnlock.push({ _id: node._id });
+		}
+	});
+	if (_.isEmpty(lockedNodes[zone._id])) {
+		delete lockedNodes[zone._id];
+	}
+	return newUnlock;
 };

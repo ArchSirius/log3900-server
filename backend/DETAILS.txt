@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 23/10/16     *
+* Socket.io 31/10/16     *
 *************************/
 
 /*
@@ -39,24 +39,26 @@ POST   /auth/login
 */
 connect
 disconnect
-reserve:name
 send:message
 edit:nodes
 create:nodes
 delete:nodes
+lock:nodes
+unlock:nodes
 
 /*
 * Server->Client
 */
 connect
 init
-reserve:name
 send:message
 user:join
 user:left
 edit:nodes
 create:nodes
 delete:nodes
+lock:nodes
+unlock:nodes
 
 
 /*************************
@@ -216,12 +218,6 @@ Description: Terminate a Socket.io connection
 Body       : --
 
 /***************
-* reserve:name *
-***************/
-Description: Reserve a chat username
-Body       : name [String]
-
-/***************
 * send:message *
 ***************/
 Description: Send a message to the chat
@@ -248,6 +244,20 @@ Description: Delete nodes online
 Body       : zoneId [String]
            : nodes  [Array]
 
+/*************
+* lock:nodes *
+*************/
+Description: Lock nodes to prevent edit from other users
+Body       : zoneId [String]
+           : nodes  [Array]
+
+/***************
+* unlock:nodes *
+***************/
+Description: Unlock nodes to allow edit from other users
+Body       : zoneId [String]
+           : nodes  [Array]
+
 /*************************
 * LOG3900-01 A16 backend *
 * Socket.io details      *
@@ -266,12 +276,6 @@ Body       : --
 Description: Initialize an accepted Socket.io connection with username 'name' and connected users 'users'
 Body       : name  [String]
            : users [Array]
-
-/***************
-* reserve:name *
-***************/
-Description: Tell the user if username is accepted
-Body       : success [Boolean]
 
 /***************
 * send:message *
@@ -310,5 +314,19 @@ Body       : zoneId [String]
 * delete:nodes *
 ***************/
 Description: Send delete request to all listening clients
+Body       : zoneId [String]
+           : nodes  [Array]
+
+/*************
+* lock:nodes *
+*************/
+Description: Send lock request to to all listening clients
+Body       : zoneId [String]
+           : nodes  [Array]
+
+/***************
+* unlock:nodes *
+***************/
+Description: Send unlock request to to all listening clients
 Body       : zoneId [String]
            : nodes  [Array]

@@ -25,7 +25,12 @@ require('./routes.js')(app);
 
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
-io.sockets.on('connection', socket);
+io.sockets
+.on('connection', socketioJwt.authorize({
+	secret: config.secret,
+	timeout: 30000
+}))
+.on('authenticated', socket);
 
 server.listen(port);
 console.log('Magic happens at http://localhost:' + port);
