@@ -3,11 +3,13 @@
 /* Controllers */
 function AppCtrl($scope, socket) {
 
+  const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1N2Q5Yjc3NDRjNWQ2ZmRkMGM3OGMyZWEiLCJyb2xlIjoidXNlciIsImlhdCI6MTQ3NDQ5MjI1OCwiZXhwIjoxNDc5Njc2MjU4fQ.J4_RDmP7_uqhD78mKli6VYZF3ZfWr0rPiimvgPzkL2k';
+
   // Socket listeners
   // ================
 
   socket.on('connect', function () {
-    socket.emit('reserve:name', { name: 'TEST' });
+    socket.emit('authenticate', { token: TEST_TOKEN });
   });
 
   socket.on('init', function (data) {
@@ -42,10 +44,6 @@ function AppCtrl($scope, socket) {
         break;
       }
     }
-  });
-
-  socket.on('reserve:name', function (message) {
-    console.log(message);
   });
 
   // Private helpers

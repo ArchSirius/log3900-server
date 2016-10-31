@@ -39,7 +39,6 @@ POST   /auth/login
 */
 connect
 disconnect
-reserve:name
 send:message
 edit:nodes
 create:nodes
@@ -52,7 +51,6 @@ unlock:nodes
 */
 connect
 init
-reserve:name
 send:message
 user:join
 user:left
@@ -220,12 +218,6 @@ Description: Terminate a Socket.io connection
 Body       : --
 
 /***************
-* reserve:name *
-***************/
-Description: Reserve a chat username
-Body       : name [String]
-
-/***************
 * send:message *
 ***************/
 Description: Send a message to the chat
@@ -284,12 +276,6 @@ Body       : --
 Description: Initialize an accepted Socket.io connection with username 'name' and connected users 'users'
 Body       : name  [String]
            : users [Array]
-
-/***************
-* reserve:name *
-***************/
-Description: Tell the user if username is accepted
-Body       : success [Boolean]
 
 /***************
 * send:message *
