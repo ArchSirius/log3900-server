@@ -4,6 +4,7 @@ const _    = require('lodash');
 
 const MAXCONNECTION = 4;
 var connections = 0;
+var lockedNodes = {};
 
 var userNames = (function() {
 
@@ -119,22 +120,25 @@ module.exports = function (socket) {
 						localNode = zone.nodes[i];
 						// Find matching node
 						if (String(localNode._id) === String(userNode._id)) {
+							// Edit if node is not locked
+							if (!isNodeLocked(zone, localNode)) { // TODO: check if user is lock owner
 
-							// _id and type cannot change
-							// Update position
-							localNode.position = _.extend(localNode.position, userNode.position);
-							// Update angle
-							localNode.angle = _.extend(localNode.angle, userNode.angle);
-							// Update angle
-							localNode.scale = _.extend(localNode.scale, userNode.scale);
-							// parent cannot change
-							// TODO user id
-							// Update timestamp
-							localNode.updatedAt = time;
+								// _id and type cannot change
+								// Update position
+								localNode.position = _.extend(localNode.position, userNode.position);
+								// Update angle
+								localNode.angle = _.extend(localNode.angle, userNode.angle);
+								// Update angle
+								localNode.scale = _.extend(localNode.scale, userNode.scale);
+								// parent cannot change
+								// TODO user id
+								// Update timestamp
+								localNode.updatedAt = time;
 
-							// Prepare update
-							updatedNodes.push(minifyNode(localNode));
+								// Prepare update
+								updatedNodes.push(minifyNode(localNode));
 
+							}
 						}
 					}
 
@@ -242,13 +246,16 @@ module.exports = function (socket) {
 						localNode = zone.nodes[i];
 						// Find matching node
 						if (String(localNode._id) === String(userNode._id)) {
+							// Delete if node is not locked
+							if (!isNodeLocked(zone, localNode)) { // TODO: check if user is lock owner
 
-							// Delete
-							zone.nodes.splice(i, 1);
+								// Delete
+								zone.nodes.splice(i, 1);
 
-							// Delete and prepare update
-							deletedNodes.push({ _id: localNode._id });
+								// Delete and prepare update
+								deletedNodes.push({ _id: localNode._id });
 
+							}
 						}
 					}
 
@@ -275,6 +282,74 @@ module.exports = function (socket) {
 			} // If zone does not exist, abort
 		});
 	});
+
+	socket.on('lock:nodes', data => {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+
+		// Find the edited zone
+		Zone.findById(zoneId, '-salt -password').exec()
+		.then(zone => {
+			// Apply changes if zone exists
+			if (zone) {
+
+				const userNodes = data.nodes;
+				const newLock = lockNodes(zone, userNodes);
+
+				// Save and emit
+				socket.broadcast.emit('lock:nodes', {
+					zoneId: zoneId,
+					nodes: newLock,
+					time: time
+				});
+				socket.emit('lock:nodes', {
+					success: true,
+					zoneId: zoneId,
+					nodes: newLock,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
+
+			} // If zone does not exist, abort
+		});
+	});
+
+	socket.on('unlock:nodes', data => {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+
+		// Find the edited zone
+		Zone.findById(zoneId, '-salt -password').exec()
+		.then(zone => {
+			// Apply changes if zone exists
+			if (zone) {
+
+				const userNodes = data.nodes;
+				const newUnlock = unlockNodes(zone, userNodes);
+
+				// Save and emit
+				socket.broadcast.emit('unlock:nodes', {
+					zoneId: zoneId,
+					nodes: newUnlock,
+					time: time
+				});
+				socket.emit('unlock:nodes', {
+					success: true,
+					zoneId: zoneId,
+					nodes: newUnlock,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
+
+			} // If zone does not exist, abort
+		});
+	});
 };
 
 var minifyNode = function(node) {
@@ -286,3 +361,38 @@ var minifyNode = function(node) {
 		updatedBy: node.updatedBy*/
 	};
 };
+
+var isNodeLocked = function(zone, node) {
+	return lockedNodes[zone._id] &&
+		   lockedNodes[zone._id].indexOf(String(node._id)) > -1;
+}
+
+// TODO: save owner userId
+var lockNodes = function(zone, nodes) {
+	if (!lockedNodes[zone._id]) {
+		lockedNodes[zone._id] = [];
+	}
+	var newLock = [];
+	nodes.forEach(node => {
+		if (!isNodeLocked(zone, node)) {
+			lockedNodes[zone._id].push(String(node._id));
+			newLock.push({ _id: node._id });
+		}
+	});
+	return newLock;
+}
+
+var unlockNodes = function(zone, nodes) {
+	if (!lockedNodes[zone._id]) {
+		return;
+	}
+	var newUnlock = [];
+	nodes.forEach(node => {
+		var i = lockedNodes[zone._id].indexOf(String(node._id));
+		if (i > -1) {
+			lockedNodes[zone._id].splice(i, 1);
+			newUnlock.push({ _id: node._id });
+		}
+	});
+	return newUnlock;
+}

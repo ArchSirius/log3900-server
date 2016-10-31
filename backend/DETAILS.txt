@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 23/10/16     *
+* Socket.io 31/10/16     *
 *************************/
 
 /*
@@ -44,6 +44,8 @@ send:message
 edit:nodes
 create:nodes
 delete:nodes
+lock:nodes
+unlock:nodes
 
 /*
 * Server->Client
@@ -57,6 +59,8 @@ user:left
 edit:nodes
 create:nodes
 delete:nodes
+lock:nodes
+unlock:nodes
 
 
 /*************************
@@ -248,6 +252,20 @@ Description: Delete nodes online
 Body       : zoneId [String]
            : nodes  [Array]
 
+/*************
+* lock:nodes *
+*************/
+Description: Lock nodes to prevent edit from other users
+Body       : zoneId [String]
+           : nodes  [Array]
+
+/***************
+* unlock:nodes *
+***************/
+Description: Unlock nodes to allow edit from other users
+Body       : zoneId [String]
+           : nodes  [Array]
+
 /*************************
 * LOG3900-01 A16 backend *
 * Socket.io details      *
@@ -310,5 +328,19 @@ Body       : zoneId [String]
 * delete:nodes *
 ***************/
 Description: Send delete request to all listening clients
+Body       : zoneId [String]
+           : nodes  [Array]
+
+/*************
+* lock:nodes *
+*************/
+Description: Send lock request to to all listening clients
+Body       : zoneId [String]
+           : nodes  [Array]
+
+/***************
+* unlock:nodes *
+***************/
+Description: Send unlock request to to all listening clients
 Body       : zoneId [String]
            : nodes  [Array]
