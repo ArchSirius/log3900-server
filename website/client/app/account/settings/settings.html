@@ -1,50 +1,104 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-      <h1>Change Password</h1>
+      <h1>Changement des informations</h1>
     </div>
     <div class="col-sm-12">
-      <form class="form" name="form" ng-submit="vm.changePassword(form)" novalidate>
+      <form class="form" name="formUserInfos" ng-submit="vm.changeUserInfos(formUserInfos)" novalidate>
+
+        <div class="form-group" ng-class="{ 'has-success': formUserInfos.username.$valid && vm.submitted.userInfos,
+                                            'has-error': formUserInfos.username.$invalid && vm.submitted.userInfos }">
+          <label>Nom d'utilisateur</label>
+
+          <input type="text" name="username" class="form-control" ng-model="vm.user.username"
+                 required
+                 mongoose-error/>
+          <p class="help-block" ng-show="formUserInfos.username.$error.required && vm.submitted.userInfos">
+            Un nom d'utilisateur est requis
+          </p>
+          <p class="help-block" ng-show="formUserInfos.username.$error.mongoose">
+              {{ vm.errors.userInfos.username }}
+          </p>
+        </div>
+
+        <div class="form-group" ng-class="{ 'has-success': formUserInfos.name.$valid && vm.submitted.userInfos,
+                                            'has-error': formUserInfos.name.$invalid && vm.submitted.userInfos }">
+          <label>Nom</label>
+
+          <input type="text" name="name" class="form-control" ng-model="vm.user.name"/>
+        </div>
+
+        <div class="form-group" ng-class="{ 'has-success': formUserInfos.email.$valid && vm.submitted.userInfos,
+                                            'has-error': formUserInfos.email.$invalid && vm.submitted.userInfos }">
+          <label>Courriel</label>
+
+          <input type="email" name="email" class="form-control" ng-model="vm.user.email"
+                 required
+                 mongoose-error/>
+          <p class="help-block" ng-show="formUserInfos.email.$error.email && vm.submitted.userInfos">
+            Ce courriel est invalide.
+          </p>
+          <p class="help-block" ng-show="formUserInfos.email.$error.required && vm.submitted.userInfos">
+            Una adresse courriel est requise.
+          </p>
+          <p class="help-block" ng-show="formUserInfos.email.$error.mongoose">
+            {{ vm.errors.userInfos.email }}
+          </p>
+        </div>
+
+        <p class="help-block"> {{ vm.message.userInfos }} </p>
+
+        <button class="btn btn-lg btn-primary" type="submit">Sauvegarder</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-sm-12">
+      <h1>Changement du mot de passe</h1>
+    </div>
+    <div class="col-sm-12">
+      <form class="form" name="formPassword" ng-submit="vm.changePassword(formPassword)" novalidate>
 
         <div class="form-group">
-          <label>Current Password</label>
+          <label>Mot de passe actuel</label>
 
           <input type="password" name="password" class="form-control" ng-model="vm.user.oldPassword"
                  mongoose-error/>
-          <p class="help-block" ng-show="form.password.$error.mongoose">
-              {{ vm.errors.other }}
+          <p class="help-block" ng-show="formPassword.password.$error.mongoose">
+              {{ vm.errors.password.other }}
           </p>
         </div>
 
         <div class="form-group">
-          <label>New Password</label>
+          <label>Nouveau mot de passe</label>
 
           <input type="password" name="newPassword" class="form-control" ng-model="vm.user.newPassword"
                  ng-minlength="3"
                  required/>
           <p class="help-block"
-             ng-show="(form.newPassword.$error.minlength || form.newPassword.$error.required) && (form.newPassword.$dirty || vm.submitted)">
-            Password must be at least 3 characters.
+             ng-show="(formPassword.newPassword.$error.minlength || formPassword.newPassword.$error.required) && (formPassword.newPassword.$dirty || vm.submitted.password)">
+            Le mot de passe doit contenir au moins 3 caractères.
           </p>
         </div>
 
         <div class="form-group">
-          <label>Confirm New Password</label>
+          <label>Confirmation du nouveau mot de passe</label>
 
           <input type="password" name="confirmPassword" class="form-control" ng-model="vm.user.confirmPassword"
                  match="vm.user.newPassword"
                  ng-minlength="3"
                  required=""/>
           <p class="help-block"
-             ng-show="form.confirmPassword.$error.match && vm.submitted">
-            Passwords must match.
+             ng-show="formPassword.confirmPassword.$error.match && vm.submitted.password">
+            Les mots de passe doivent être identiques.
           </p>
 
         </div>
 
-        <p class="help-block"> {{ vm.message }} </p>
+        <p class="help-block"> {{ vm.message.password }} </p>
 
-        <button class="btn btn-lg btn-primary" type="submit">Save changes</button>
+        <button class="btn btn-lg btn-primary" type="submit">Sauvegarder</button>
       </form>
     </div>
   </div>

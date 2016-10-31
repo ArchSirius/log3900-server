@@ -82,12 +82,10 @@ UserSchema
 UserSchema
   .path('username')
   .validate(function(value, respond) {
-    var self = this;
-
     return this.constructor.findOne({ username: value }).exec()
-      .then(function(user) {
+      .then(user => {
         if (user) {
-          if (self.id === user.id) {
+          if (this.id === user.id) {
             return respond(true);
           }
           return respond(false);

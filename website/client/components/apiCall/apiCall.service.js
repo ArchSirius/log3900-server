@@ -25,6 +25,14 @@ export function apiCallService($http) {
     });
   };
 
+  // GET one user by username
+  this.getUserByUsername = function(username) {
+    return $http.get('/api/users/username/' + username)
+    .then(response => {
+      return response.data;
+    });
+  };
+
   // POST new user
   this.createUser = function(user) {
     return $http.post('/api/users', user)

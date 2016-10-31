@@ -5,6 +5,7 @@ export default function($stateProvider) {
   $stateProvider
     .state('zone', {
       url: '/zone/:id',
-      template: '<zone></zone>'
+      template: '<zone></zone>',
+      authenticate: true
     });
 }

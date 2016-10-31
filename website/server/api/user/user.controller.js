@@ -3,6 +3,7 @@
 import User from './user.model';
 import config from '../../config/environment';
 import jwt from 'jsonwebtoken';
+import _ from 'lodash';
 
 function validationError(res, statusCode) {
   statusCode = statusCode || 422;
@@ -20,7 +21,6 @@ function handleError(res, statusCode) {
 
 /**
  * Get list of users
- * restriction: 'admin'
  */
 export function index(req, res) {
   return User.find({}, '-salt -password').exec()
@@ -48,12 +48,28 @@ export function create(req, res) {
 }
 
 /**
- * Get a single user
+ * Get a single user by id
  */
 export function show(req, res, next) {
   var userId = req.params.id;
 
   return User.findById(userId).exec()
+    .then(user => {
+      if(!user) {
+        return res.status(404).end();
+      }
+      res.json(user.profile);
+    })
+    .catch(err => next(err));
+}
+
+/**
+ * Get a single user by username
+ */
+export function findByUsername(req, res, next) {
+  var username = req.params.username;
+
+  return User.findOne({ username : username }).exec()
     .then(user => {
       if(!user) {
         return res.status(404).end();
@@ -112,6 +128,29 @@ export function me(req, res, next) {
       res.json(user);
     })
     .catch(err => next(err));
+}
+
+// Upserts the given User in the DB at the specified ID
+export function updateUserInfos(req, res) {
+  const userId = req.user._id;
+  if(req.body._id) {
+    delete req.body._id;
+  }
+  if(req.body.salt) {
+    delete req.body.salt;
+  }
+  if(req.body.password) {
+    delete req.body.password;
+  }
+  return User.findById(userId).exec()
+    .then(user => {
+      user = _.extend(user, req.body);
+      return user.save()
+        .then(() => {
+          res.status(204).end();
+        })
+        .catch(validationError(res));
+    });
 }
 
 /**
