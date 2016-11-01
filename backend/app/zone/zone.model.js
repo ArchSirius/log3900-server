@@ -7,7 +7,7 @@ mongoose.Promise = require('bluebird');
 var NodeSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: [ 'COMPOSITE', 'LINE', 'LINE_SEGMENT', 'POLE', 'ROBOT', 'START', 'WALL' ],
+    enum: [ 'cylindre', 'depart', 'ligne', 'mur', 'robot', 'segment', 'table' ],
     required: true
   },
   position: {
