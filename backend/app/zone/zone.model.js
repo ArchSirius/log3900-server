@@ -32,12 +32,9 @@ var NodeSchema = new mongoose.Schema({
     type: Number,
     default: 0.0
   },
-  parent: mongoose.Schema.Types.ObjectId/*,
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId/
-    required: true
-  },
-  updatedBy: mongoose.Schema.Types.ObjectId,*/
+  parent: mongoose.Schema.Types.ObjectId,
+  createdBy: mongoose.Schema.Types.ObjectId,
+  updatedBy: mongoose.Schema.Types.ObjectId
 }, {
   timestamps: {
     createdAt: 'createdAt',
@@ -64,10 +61,7 @@ var ZoneSchema = new mongoose.Schema({
     type: [ NodeSchema ],
     default: []
   },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true
-  },
+  createdBy: mongoose.Schema.Types.ObjectId,
   updatedBy: mongoose.Schema.Types.ObjectId
 }, {
   timestamps: {
