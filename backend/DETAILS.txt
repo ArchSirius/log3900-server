@@ -31,13 +31,14 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 31/10/16     *
+* Socket.io 01/11/16     *
 *************************/
 
 /*
 * Client->Server
 */
 connect
+authenticate
 disconnect
 send:message
 edit:nodes
@@ -45,6 +46,7 @@ create:nodes
 delete:nodes
 lock:nodes
 unlock:nodes
+ping:position
 
 /*
 * Server->Client
@@ -59,6 +61,7 @@ create:nodes
 delete:nodes
 lock:nodes
 unlock:nodes
+ping:position
 
 
 /*************************
@@ -211,6 +214,12 @@ Returns     : Success
 Description: Request a Socket.io connection
 Body       : --
 
+/***************
+* authenticate *
+***************/
+Description: Authenticate user to grant socket init
+Body       : token [String]
+
 /*************
 * disconnect *
 *************/
@@ -258,6 +267,13 @@ Description: Unlock nodes to allow edit from other users
 Body       : zoneId [String]
            : nodes  [Array]
 
+/****************
+* ping:position *
+****************/
+Description: Ping a position for users to see
+Body       : zoneId    [String]
+           : position  [Object]
+
 /*************************
 * LOG3900-01 A16 backend *
 * Socket.io details      *
@@ -301,6 +317,7 @@ Body       : name [String]
 *************/
 Description: Send edit request to all listening clients
 Body       : zoneId [String]
+           : user   [String]
            : nodes  [Array]
 
 /***************
@@ -308,6 +325,7 @@ Body       : zoneId [String]
 ***************/
 Description: Send create request to all listening clients
 Body       : zoneId [String]
+           : user   [String]
            : nodes  [Array]
 
 /***************
@@ -315,6 +333,7 @@ Body       : zoneId [String]
 ***************/
 Description: Send delete request to all listening clients
 Body       : zoneId [String]
+           : user   [String]
            : nodes  [Array]
 
 /*************
@@ -322,6 +341,7 @@ Body       : zoneId [String]
 *************/
 Description: Send lock request to to all listening clients
 Body       : zoneId [String]
+           : user   [String]
            : nodes  [Array]
 
 /***************
@@ -330,3 +350,11 @@ Body       : zoneId [String]
 Description: Send unlock request to to all listening clients
 Body       : zoneId [String]
            : nodes  [Array]
+
+/****************
+* ping:position *
+****************/
+Description: Transmit user ping to all listening clients
+Body       : zoneId   [String]
+           : user     [String]
+           : position [Object]
