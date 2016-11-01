@@ -8,13 +8,13 @@ var NodeSchema = new Schema({
   type: {
     type: String,
     enum: [
-      'COMPOSITE',
-      'LINE',
-      'LINE_SEGMENT',
-      'POLE',
-      'ROBOT',
-      'START',
-      'WALL'
+      'cylindre',
+      'depart',
+      'ligne',
+      'mur',
+      'robot',
+      'segment',
+      'table'
     ],
     required: true
   },
