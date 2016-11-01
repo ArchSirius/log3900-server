@@ -37,8 +37,18 @@ var NodeSchema = new Schema({
     default: 0.0
   },
   scale: {
-    type: Number,
-    default: 0.0
+    x: {
+      type: Number,
+      default: 1.0
+    },
+    y: {
+      type: Number,
+      default: 1.0
+    },
+    z: {
+      type: Number,
+      default: 1.0
+    }
   },
   parent: Schema.Types.ObjectId,
   createdBy: Schema.Types.ObjectId,
