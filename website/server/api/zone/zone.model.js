@@ -40,12 +40,9 @@ var NodeSchema = new Schema({
     type: Number,
     default: 0.0
   },
-  parent: Schema.Types.ObjectId/*,
-  createdBy: {
-    type: Schema.Types.ObjectId/
-    required: true
-  },
-  updatedBy: Schema.Types.ObjectId,*/
+  parent: Schema.Types.ObjectId,
+  createdBy: Schema.Types.ObjectId,
+  updatedBy: Schema.Types.ObjectId
 }, {
   timestamps: {
     createdAt: 'createdAt',
@@ -72,10 +69,7 @@ var ZoneSchema = new Schema({
     type: [ NodeSchema ],
     default: []
   },
-  createdBy: {
-    type: Schema.Types.ObjectId,
-    required: true
-  },
+  createdBy: Schema.Types.ObjectId,
   updatedBy: Schema.Types.ObjectId
 }, {
   timestamps: {
