@@ -141,25 +141,47 @@ module.exports = function (socket) {
 				});
 
 				// Save and emit
-				zone.save();
-				socket.broadcast.emit('edit:nodes', {
-					zoneId: zoneId,
-					user: userId,
-					nodes: updatedNodes,
-					time: time
-				});
-				socket.emit('edit:nodes', {
-					success: true,
-					zoneId: zoneId,
-					nodes: updatedNodes,
-					time: time
-				});
+				zone.save()
+				.then(() => {
 
-				// Log performance
-				const end = new Date().getTime();
-				console.log('edit:nodes', updatedNodes.length + ' nodes in ' + (end - time) + ' ms');
+					socket.broadcast.emit('edit:nodes', {
+						zoneId: zoneId,
+						user: userId,
+						nodes: updatedNodes,
+						time: time
+					});
+					socket.emit('edited:nodes', {
+						success: true,
+						zoneId: zoneId,
+						nodes: updatedNodes,
+						time: time
+					});
+
+					// Log performance
+					const end = new Date().getTime();
+					console.log('edit:nodes', updatedNodes.length + ' nodes in ' + (end - time) + ' ms');
+
+				})
+				.catch(error => {
+					socket.emit('edited:nodes', {
+						success: false,
+						error: error,
+						zoneId: zoneId,
+						nodes: userNodes,
+						time: time
+					});
+				});
 
 			} // If zone does not exist, abort
+
+			socket.emit('edited:nodes', {
+				success: false,
+				message: 'Zone not found.',
+				zoneId: zoneId,
+				nodes: data.nodes,
+				time: time
+			});
+
 		});
 	});
 
@@ -190,6 +212,7 @@ module.exports = function (socket) {
 				// Save and emit
 				zone.save()
 				.then(saved => {
+
 					// Return created nodes with simple structure
 					const nodes = saved.nodes.slice(index).map(minifyNode);
 					socket.broadcast.emit('create:nodes', {
@@ -198,7 +221,7 @@ module.exports = function (socket) {
 						nodes: nodes,
 						time: time
 					});
-					socket.emit('create:nodes', {
+					socket.emit('created:nodes', {
 						success: true,
 						zoneId: zoneId,
 						nodes: nodes,
@@ -211,7 +234,7 @@ module.exports = function (socket) {
 
 				})
 				.catch(error => {
-					socket.emit('create:nodes', {
+					socket.emit('created:nodes', {
 						success: false,
 						error: error,
 						zoneId: zoneId,
@@ -221,6 +244,15 @@ module.exports = function (socket) {
 				});
 
 			} // If zone does not exist, abort
+
+			socket.emit('created:nodes', {
+				success: false,
+				message: 'Zone not found.',
+				zoneId: zoneId,
+				nodes: data.nodes,
+				time: time
+			});
+
 		});
 	});
 
@@ -261,25 +293,47 @@ module.exports = function (socket) {
 				});
 
 				// Save and emit
-				zone.save();
-				socket.broadcast.emit('delete:nodes', {
-					zoneId: zoneId,
-					user: userId,
-					nodes: deletedNodes,
-					time: time
-				});
-				socket.emit('delete:nodes', {
-					success: true,
-					zoneId: zoneId,
-					nodes: deletedNodes,
-					time: time
-				});
+				zone.save()
+				.then(() => {
+
+					socket.broadcast.emit('delete:nodes', {
+						zoneId: zoneId,
+						user: userId,
+						nodes: deletedNodes,
+						time: time
+					});
+					socket.emit('deleted:nodes', {
+						success: true,
+						zoneId: zoneId,
+						nodes: deletedNodes,
+						time: time
+					});
 
 				// Log performance
 				const end = new Date().getTime();
 				console.log('delete:nodes', deletedNodes.length + ' nodes in ' + (end - time) + ' ms');
 
+				})
+				.catch(error => {
+					socket.emit('deleted:nodes', {
+						success: false,
+						error: error,
+						zoneId: zoneId,
+						nodes: userNodes,
+						time: time
+					});
+				});
+
 			} // If zone does not exist, abort
+
+			socket.emit('deleted:nodes', {
+				success: false,
+				message: 'Zone not found.',
+				zoneId: zoneId,
+				nodes: data.nodes,
+				time: time
+			});
+
 		});
 	});
 
@@ -303,7 +357,7 @@ module.exports = function (socket) {
 					nodes: newLock,
 					time: time
 				});
-				socket.emit('lock:nodes', {
+				socket.emit('locked:nodes', {
 					success: true,
 					zoneId: zoneId,
 					nodes: newLock,
@@ -315,6 +369,15 @@ module.exports = function (socket) {
 				console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
 
 			} // If zone does not exist, abort
+
+			socket.emit('locked:nodes', {
+				success: false,
+				message: 'Zone not found.',
+				zoneId: zoneId,
+				nodes: data.nodes,
+				time: time
+			});
+
 		});
 	});
 
@@ -337,7 +400,7 @@ module.exports = function (socket) {
 					nodes: newUnlock,
 					time: time
 				});
-				socket.emit('unlock:nodes', {
+				socket.emit('unlocked:nodes', {
 					success: true,
 					zoneId: zoneId,
 					nodes: newUnlock,
@@ -349,6 +412,15 @@ module.exports = function (socket) {
 				console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
 
 			} // If zone does not exist, abort
+
+			socket.emit('unlocked:nodes', {
+				success: false,
+				message: 'Zone not found.',
+				zoneId: zoneId,
+				nodes: data.nodes,
+				time: time
+			});
+
 		});
 	});
 
