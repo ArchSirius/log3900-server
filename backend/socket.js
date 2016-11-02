@@ -144,6 +144,7 @@ module.exports = function (socket) {
 				zone.save();
 				socket.broadcast.emit('edit:nodes', {
 					zoneId: zoneId,
+					user: userId,
 					nodes: updatedNodes,
 					time: time
 				});
@@ -193,6 +194,7 @@ module.exports = function (socket) {
 					const nodes = saved.nodes.slice(index).map(minifyNode);
 					socket.broadcast.emit('create:nodes', {
 						zoneId: zoneId,
+						user: userId,
 						nodes: nodes,
 						time: time
 					});
@@ -262,6 +264,7 @@ module.exports = function (socket) {
 				zone.save();
 				socket.broadcast.emit('delete:nodes', {
 					zoneId: zoneId,
+					user: userId,
 					nodes: deletedNodes,
 					time: time
 				});
@@ -296,6 +299,7 @@ module.exports = function (socket) {
 				// Save and emit
 				socket.broadcast.emit('lock:nodes', {
 					zoneId: zoneId,
+					user: userId,
 					nodes: newLock,
 					time: time
 				});
@@ -345,6 +349,23 @@ module.exports = function (socket) {
 				console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
 
 			} // If zone does not exist, abort
+		});
+	});
+
+	socket.on('ping:position', data => {
+		const time = new Date().getTime();
+		const zoneId = data.zoneId;
+		const position = {
+			x: Number(data.position.x) || 0.0,
+			y: Number(data.position.y) || 0.0,
+			z: Number(data.position.z) || 0.0
+		};
+
+		socket.broadcast.emit('ping:position', {
+			zoneId: zoneId,
+			user: userId,
+			position: position,
+			time: time
 		});
 	});
 };
