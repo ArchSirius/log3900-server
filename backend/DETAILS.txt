@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 02/11/16     *
+* Socket.io 03/11/16     *
 *************************/
 
 /*
@@ -40,6 +40,8 @@ POST   /auth/login
 connect
 authenticate
 disconnect
+join:zone
+leave:zone
 send:message
 edit:nodes
 create:nodes
@@ -56,6 +58,10 @@ init
 send:message
 user:join
 user:left
+join:zone
+joined:zone
+leave:zone
+left:zone
 edit:nodes
 edited:nodes
 create:nodes
@@ -237,46 +243,52 @@ Body       : --
 Description: Send a message to the chat
 Body       : message [String]
 
+/************
+* join:zone *
+************/
+Description: Join a zone's room
+           : zoneId [String]
+
+/*************
+* leave:zone *
+*************/
+Description: Leave a zone's room
+           : --
+
 /*************
 * edit:nodes *
 *************/
 Description: Edit nodes online
-Body       : zoneId [String]
-           : nodes  [Array]
+           : nodes [Array]
 
 /***************
 * create:nodes *
 ***************/
 Description: Create nodes online
-Body       : zoneId [String]
-           : nodes  [Array]
+           : nodes [Array]
 
 /***************
 * delete:nodes *
 ***************/
 Description: Delete nodes online
-Body       : zoneId [String]
-           : nodes  [Array]
+           : nodes [Array]
 
 /*************
 * lock:nodes *
 *************/
 Description: Lock nodes to prevent edit from other users
-Body       : zoneId [String]
-           : nodes  [Array]
+           : nodes [Array]
 
 /***************
 * unlock:nodes *
 ***************/
 Description: Unlock nodes to allow edit from other users
-Body       : zoneId [String]
-           : nodes  [Array]
+           : nodes [Array]
 
 /****************
 * ping:position *
 ****************/
 Description: Ping a position for users to see
-Body       : zoneId   [String]
            : position [Object]
 
 /*************************
@@ -321,12 +333,43 @@ Description: Tell a user of username 'name' has left
 Body       : name [String]
            : time [Integer]
 
+/************
+* join:zone *
+************/
+Description: Tell a user (_id and username) has joined the zone
+           : user [Object]
+           : time
+
+/**************
+* joined:zone *
+**************/
+Description: Return join:zone feedback to caller
+           : success [Boolean]
+           : error   [Object] [optional]
+           : message [String] [optional]
+           : zoneId  [String]
+           : time    [Integer]
+
+/*************
+* leave:zone *
+*************/
+Description: Tell a user has left the zone
+           : userId [String]
+           : time
+
+/**************
+* left:zone *
+**************/
+Description: Return leave:zone feedback to caller
+           : success [Boolean]
+           : message [String] [optional]
+           : time    [Integer]
+
 /*************
 * edit:nodes *
 *************/
 Description: Send edit request to all listening clients
-Body       : zoneId [String]
-           : user   [String]
+Body       : userId [String]
            : nodes  [Array]
            : time   [Integer]
 
@@ -337,7 +380,6 @@ Description: Return edit:nodes feedback to caller
 Body       : success [Boolean]
            : error   [Object] [optional]
            : message [String] [optional]
-           : zoneId  [String]
            : nodes   [Array]
            : time    [Integer]
 
@@ -345,8 +387,7 @@ Body       : success [Boolean]
 * create:nodes *
 ***************/
 Description: Send create request to all listening clients
-Body       : zoneId [String]
-           : user   [String]
+Body       : userId [String]
            : nodes  [Array]
            : time   [Integer]
 
@@ -357,7 +398,6 @@ Description: Return create:nodes feedback to caller
 Body       : success [Boolean]
            : error   [Object] [optional]
            : message [String] [optional]
-           : zoneId  [String]
            : nodes   [Array]
            : time    [Integer]
 
@@ -365,8 +405,7 @@ Body       : success [Boolean]
 * delete:nodes *
 ***************/
 Description: Send delete request to all listening clients
-Body       : zoneId [String]
-           : user   [String]
+Body       : userId [String]
            : nodes  [Array]
            : time   [Integer]
 
@@ -377,7 +416,6 @@ Description: Return delete:nodes feedback to caller
 Body       : success [Boolean]
            : error   [Object] [optional]
            : message [String] [optional]
-           : zoneId  [String]
            : nodes   [Array]
            : time    [Integer]
 
@@ -385,8 +423,7 @@ Body       : success [Boolean]
 * lock:nodes *
 *************/
 Description: Send lock request to to all listening clients
-Body       : zoneId [String]
-           : user   [String]
+Body       : userId [String]
            : nodes  [Array]
            : time   [Integer]
 
@@ -396,7 +433,6 @@ Body       : zoneId [String]
 Description: Return lock:nodes feedback to caller
 Body       : success [Boolean]
            : message [String] [optional]
-           : zoneId  [String]
            : nodes   [Array]
            : time    [Integer]
 
@@ -404,9 +440,8 @@ Body       : success [Boolean]
 * unlock:nodes *
 ***************/
 Description: Send unlock request to to all listening clients
-Body       : zoneId [String]
-           : nodes  [Array]
-           : time   [Integer]
+Body       : nodes [Array]
+           : time  [Integer]
 
 /*****************
 * unlocked:nodes *
@@ -414,7 +449,6 @@ Body       : zoneId [String]
 Description: Return unlock:nodes feedback to caller
 Body       : success [Boolean]
            : message [String] [optional]
-           : zoneId  [String]
            : nodes   [Array]
            : time    [Integer]
 
@@ -422,7 +456,6 @@ Body       : success [Boolean]
 * ping:position *
 ****************/
 Description: Transmit user ping to all listening clients
-Body       : zoneId   [String]
-           : user     [String]
+Body       : userId   [String]
            : position [Object]
            : time     [Integer]

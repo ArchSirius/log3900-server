@@ -2,44 +2,80 @@ const User = require('./app/user/user.model');
 const Zone = require('./app/zone/zone.model');
 const _    = require('lodash');
 
-const MAXCONNECTION = 4;
-var connections = 0;
 var lockedNodes = {};
 
-var userNames = (function() {
+const usersCtrl = (function() {
 
-	var names = {};
+	var users = {};
 
-	var join = function(name) {
-		connections++;
-		if (!name || names[name]) {
+	const join = function(user) {
+		if (!user || users[String(user._id)]) {
 			return false;
 		}
 		else {
-			names[name] = true;
+			users[String(user._id)] = { username: user.username };
 			return true;
 		}
 	};
 
-	var get = function() {
+	const getUser = function(userId) {
+		return users[String(userId)];
+	};
+
+	const getZoneId = function(userId) {
+		const user = users[String(userId)];
+		if (user) {
+			return user.zoneId;
+		}
+		return undefined;
+	};
+
+	const getUsers = function() {
 		var res = [];
-		for (user in names) {
-			res.push(user);
+		for (user in users) {
+			res.push({
+				_id: users[user]._id,
+				username: users[user].username
+			});
 		}
 		return res;
 	};
 
-	var leave = function(name) {
-		connections--;
-		if (names[name]) {
-			delete names[name];
+	const getNames = function() {
+		var res = [];
+		for (user in users) {
+			res.push(users[user].username);
+		}
+		return res;
+	};
+
+	const leave = function(userId) {
+		if (users[String(userId)]) {
+			delete users[String(userId)];
+		}
+	};
+
+	const registerZone = function(userId, zoneId) {
+		if (users[String(userId)]) {
+			users[String(userId)].zoneId = zoneId;
+		}
+	};
+
+	const unregisterZone = function(userId, zoneId) {
+		if (users[String(userId)]) {
+			delete users[String(userId)].zoneId;
 		}
 	};
 
 	return {
 		join: join,
 		leave: leave,
-		get: get
+		getUser: getUser,
+		getZoneId: getZoneId,
+		getUsers: getUsers,
+		getNames: getNames,
+		registerZone: registerZone,
+		unregisterZone: unregisterZone
 	};
 }());
 
@@ -48,30 +84,40 @@ module.exports = function (socket) {
 	const userId = socket.decoded_token._id;
 	var username = '';
 	// Fetch user infos
-	User.findById(userId)
+	User.findById(userId, '-salt -password')
 	.then(user => {
-		username = user.username;
-		userNames.join(username);
+		if (user) {
+			username = user.username;
+			usersCtrl.join(user);	// TODO handle return
 
-		var time = new Date().getTime();
+			const time = new Date().getTime();
 
-		// send the new user their name and a list of users
-		socket.emit('init', {
-			name: username,
-			users: userNames.get(),
-			time: time
-		});
+			// send the new user their name and a list of users
+			socket.emit('init', {
+				name: username,
+				users: usersCtrl.getNames(),
+				time: time
+			});
 
-		// notify other clients that a new user has joined
-		socket.broadcast.emit('user:join', {
-			name: username,
-			time: time
-		});
+			// notify other clients that a new user has joined
+			socket.broadcast.emit('user:join', {
+				name: username,
+				time: time
+			});
+		}
+		// If user does not exist, abort
+		else {
+			socket.close();
+		}
+	})
+	// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+	.catch(error => {
+		console.log('SERVER ERROR in constructor', error);
 	});
 
 	// broadcast a user's message to other users
 	socket.on('send:message', function (data) {
-		var time = new Date().getTime();
+		const time = new Date().getTime();
 		socket.broadcast.emit('send:message', {
 			user: username,
 			text: data.message,
@@ -86,17 +132,97 @@ module.exports = function (socket) {
 
 	// clean up when a user leaves, and broadcast it to other users
 	socket.on('disconnect', function () {
+		const time = new Date().getTime();
 		socket.broadcast.emit('user:left', {
 			name: username,
-			time: new Date().getTime()
+			time: time
 		});
-		userNames.leave(username);
+		usersCtrl.leave(userId);
+		const zoneId = usersCtrl.getZoneId(userId);
+		if (zoneId) {
+			socket.to(zoneId).emit('leave:zone', {
+				userId: userId,
+				time: time
+			});
+		}
 	});
 
 
-	socket.on('edit:nodes', data => {
+	socket.on('join:zone', data => {
 		const time = new Date().getTime();
 		const zoneId = data.zoneId;
+		if (zoneId) {
+			usersCtrl.registerZone(userId, zoneId);
+			socket.join(zoneId);
+			Zone.findById(zoneId, '-salt -password').exec()
+			.then(zone => {
+				if (zone) {
+					socket.to(zoneId).emit('join:zone', {
+						user: usersCtrl.getUser(userId),
+						time: time
+					});
+					socket.emit('joined:zone', {
+						success: true,
+						zoneId: zoneId,
+						time: time
+					});
+				}
+				else {
+					socket.emit('joined:zone', {
+						success: false,
+						message: 'Zone not found.',
+						zoneId: zoneId,
+						time: time
+					});
+				}
+			})
+			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+			.catch(error => {
+				socket.emit('joined:zone', {
+					success: false,
+					error: error,
+					zoneId: zoneId,
+					time: time
+				});
+				console.log('SERVER ERROR in join:zone', error);
+			});
+		}
+		else {
+			socket.emit('joined:zone', {
+				success: false,
+				message: 'Missing zoneId.',
+				time: time
+			});
+		}
+	});
+
+	socket.on('leave:zone', () => {
+		const time = new Date().getTime();
+		const zoneId = usersCtrl.getZoneId(userId);
+		if (zoneId) {
+			usersCtrl.unregisterZone(userId, zoneId);
+			socket.to(zoneId).emit('leave:zone', {
+				userId: userId,
+				time: time
+			});
+			socket.emit('left:zone', {
+				success: true,
+				time: time
+			});
+			socket.leave(zoneId);
+		}
+		else {
+			socket.emit('left:zone', {
+				success: false,
+				message: 'Not in zone.',
+				time: time
+			});
+		}
+	});
+
+	socket.on('edit:nodes', data => {
+		const time = new Date().getTime();
+		const zoneId = usersCtrl.getZoneId(userId);
 
 		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
@@ -144,15 +270,13 @@ module.exports = function (socket) {
 				zone.save()
 				.then(() => {
 
-					socket.broadcast.emit('edit:nodes', {
-						zoneId: zoneId,
-						user: userId,
+					socket.to(zoneId).emit('edit:nodes', {
+						userId: userId,
 						nodes: updatedNodes,
 						time: time
 					});
 					socket.emit('edited:nodes', {
 						success: true,
-						zoneId: zoneId,
 						nodes: updatedNodes,
 						time: time
 					});
@@ -167,7 +291,6 @@ module.exports = function (socket) {
 					socket.emit('edited:nodes', {
 						success: false,
 						error: error,
-						zoneId: zoneId,
 						nodes: userNodes,
 						time: time
 					});
@@ -179,7 +302,6 @@ module.exports = function (socket) {
 				socket.emit('edited:nodes', {
 					success: false,
 					message: 'Zone not found.',
-					zoneId: zoneId,
 					nodes: data.nodes,
 					time: time
 				});
@@ -190,7 +312,6 @@ module.exports = function (socket) {
 			socket.emit('edited:nodes', {
 				success: false,
 				error: error,
-				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
@@ -200,7 +321,7 @@ module.exports = function (socket) {
 
 	socket.on('create:nodes', data => {
 		const time = new Date().getTime();
-		const zoneId = data.zoneId;
+		const zoneId = usersCtrl.getZoneId(userId);
 
 		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
@@ -228,15 +349,13 @@ module.exports = function (socket) {
 
 					// Return created nodes with simple structure
 					const nodes = saved.nodes.slice(index).map(minifyNode);
-					socket.broadcast.emit('create:nodes', {
-						zoneId: zoneId,
-						user: userId,
+					socket.to(zoneId).emit('create:nodes', {
+						userId: userId,
 						nodes: nodes,
 						time: time
 					});
 					socket.emit('created:nodes', {
 						success: true,
-						zoneId: zoneId,
 						nodes: nodes,
 						time: time
 					});
@@ -251,7 +370,6 @@ module.exports = function (socket) {
 					socket.emit('created:nodes', {
 						success: false,
 						error: error,
-						zoneId: zoneId,
 						nodes: nodes,
 						time: time
 					});
@@ -263,7 +381,6 @@ module.exports = function (socket) {
 				socket.emit('created:nodes', {
 					success: false,
 					message: 'Zone not found.',
-					zoneId: zoneId,
 					nodes: data.nodes,
 					time: time
 				});
@@ -274,7 +391,6 @@ module.exports = function (socket) {
 			socket.emit('created:nodes', {
 				success: false,
 				error: error,
-				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
@@ -284,7 +400,7 @@ module.exports = function (socket) {
 
 	socket.on('delete:nodes', data => {
 		const time = new Date().getTime();
-		const zoneId = data.zoneId;
+		const zoneId = usersCtrl.getZoneId(userId);
 
 		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
@@ -322,15 +438,13 @@ module.exports = function (socket) {
 				zone.save()
 				.then(() => {
 
-					socket.broadcast.emit('delete:nodes', {
-						zoneId: zoneId,
-						user: userId,
+					socket.to(zoneId).emit('delete:nodes', {
+						userId: userId,
 						nodes: deletedNodes,
 						time: time
 					});
 					socket.emit('deleted:nodes', {
 						success: true,
-						zoneId: zoneId,
 						nodes: deletedNodes,
 						time: time
 					});
@@ -345,7 +459,6 @@ module.exports = function (socket) {
 					socket.emit('deleted:nodes', {
 						success: false,
 						error: error,
-						zoneId: zoneId,
 						nodes: userNodes,
 						time: time
 					});
@@ -357,7 +470,6 @@ module.exports = function (socket) {
 				socket.emit('deleted:nodes', {
 					success: false,
 					message: 'Zone not found.',
-					zoneId: zoneId,
 					nodes: data.nodes,
 					time: time
 				});
@@ -368,7 +480,6 @@ module.exports = function (socket) {
 			socket.emit('deleted:nodes', {
 				success: false,
 				error: error,
-				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
@@ -378,7 +489,7 @@ module.exports = function (socket) {
 
 	socket.on('lock:nodes', data => {
 		const time = new Date().getTime();
-		const zoneId = data.zoneId;
+		const zoneId = usersCtrl.getZoneId(userId);
 
 		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
@@ -390,15 +501,13 @@ module.exports = function (socket) {
 				const newLock = lockNodes(zone, userNodes, userId);
 
 				// Save and emit
-				socket.broadcast.emit('lock:nodes', {
-					zoneId: zoneId,
-					user: userId,
+				socket.to(zoneId).emit('lock:nodes', {
+					userId: userId,
 					nodes: newLock,
 					time: time
 				});
 				socket.emit('locked:nodes', {
 					success: true,
-					zoneId: zoneId,
 					nodes: newLock,
 					time: time
 				});
@@ -413,7 +522,6 @@ module.exports = function (socket) {
 				socket.emit('locked:nodes', {
 					success: false,
 					message: 'Zone not found.',
-					zoneId: zoneId,
 					nodes: data.nodes,
 					time: time
 				});
@@ -424,7 +532,6 @@ module.exports = function (socket) {
 			socket.emit('locked:nodes', {
 				success: false,
 				error: error,
-				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
@@ -434,7 +541,7 @@ module.exports = function (socket) {
 
 	socket.on('unlock:nodes', data => {
 		const time = new Date().getTime();
-		const zoneId = data.zoneId;
+		const zoneId = usersCtrl.getZoneId(userId);
 
 		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
@@ -446,14 +553,12 @@ module.exports = function (socket) {
 				const newUnlock = unlockNodes(zone, userNodes, userId);
 
 				// Save and emit
-				socket.broadcast.emit('unlock:nodes', {
-					zoneId: zoneId,
+				socket.to(zoneId).emit('unlock:nodes', {
 					nodes: newUnlock,
 					time: time
 				});
 				socket.emit('unlocked:nodes', {
 					success: true,
-					zoneId: zoneId,
 					nodes: newUnlock,
 					time: time
 				});
@@ -468,7 +573,6 @@ module.exports = function (socket) {
 				socket.emit('unlocked:nodes', {
 					success: false,
 					message: 'Zone not found.',
-					zoneId: zoneId,
 					nodes: data.nodes,
 					time: time
 				});
@@ -479,7 +583,6 @@ module.exports = function (socket) {
 			socket.emit('unlocked:nodes', {
 				success: false,
 				error: error,
-				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
@@ -489,23 +592,24 @@ module.exports = function (socket) {
 
 	socket.on('ping:position', data => {
 		const time = new Date().getTime();
-		const zoneId = data.zoneId;
+		const zoneId = usersCtrl.getZoneId(userId);
 		const position = {
 			x: Number(data.position.x) || 0.0,
 			y: Number(data.position.y) || 0.0,
 			z: Number(data.position.z) || 0.0
 		};
 
-		socket.broadcast.emit('ping:position', {
-			zoneId: zoneId,
-			user: userId,
-			position: position,
-			time: time
-		});
+		if (zoneId) {
+			socket.to(zoneId).emit('ping:position', {
+				userId: userId,
+				position: position,
+				time: time
+			});
+		}
 	});
 };
 
-var minifyNode = function(node) {
+const minifyNode = function(node) {
 	return {
 		_id: node._id,
 		position: node.position,
@@ -515,22 +619,22 @@ var minifyNode = function(node) {
 	};
 };
 
-var isNodeLocked = function(zone, node) {
+const isNodeLocked = function(zone, node) {
 	return !_.isEmpty(lockedNodes[zone._id]) &&
 		   lockedNodes[zone._id][String(node._id)];
 };
 
-var isNodeOwner = function(zone, node, userId) {
+const isNodeOwner = function(zone, node, userId) {
 	return !_.isEmpty(lockedNodes[zone._id]) &&
 		   String(lockedNodes[zone._id][String(node._id)]) === String(userId);
 };
 
-var hasAccess = function(zone, node, userId) {
+const hasAccess = function(zone, node, userId) {
 	return !isNodeLocked(zone, node) ||
 		   isNodeOwner(zone, node, userId);
 };
 
-var lockNodes = function(zone, nodes, userId) {
+const lockNodes = function(zone, nodes, userId) {
 	if (!lockedNodes[zone._id]) {
 		lockedNodes[zone._id] = {};
 	}
@@ -544,7 +648,7 @@ var lockNodes = function(zone, nodes, userId) {
 	return newLock;
 };
 
-var unlockNodes = function(zone, nodes, userId) {
+const unlockNodes = function(zone, nodes, userId) {
 	if (!lockedNodes[zone._id]) {
 		return;
 	}
