@@ -162,6 +162,7 @@ module.exports = function (socket) {
 					console.log('edit:nodes', updatedNodes.length + ' nodes in ' + (end - time) + ' ms');
 
 				})
+				// Catch model validation erors
 				.catch(error => {
 					socket.emit('edited:nodes', {
 						success: false,
@@ -172,16 +173,28 @@ module.exports = function (socket) {
 					});
 				});
 
-			} // If zone does not exist, abort
-
+			}
+			// If zone does not exist, abort
+			else {
+				socket.emit('edited:nodes', {
+					success: false,
+					message: 'Zone not found.',
+					zoneId: zoneId,
+					nodes: data.nodes,
+					time: time
+				});
+			}
+		})
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		.catch(error => {
 			socket.emit('edited:nodes', {
 				success: false,
-				message: 'Zone not found.',
+				error: error,
 				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
-
+			console.log('SERVER ERROR in edit:nodes', error);
 		});
 	});
 
@@ -233,6 +246,7 @@ module.exports = function (socket) {
 					console.log('create:nodes', nodes.length + ' nodes in ' + (end - time) + ' ms');
 
 				})
+				// Catch model validation erors
 				.catch(error => {
 					socket.emit('created:nodes', {
 						success: false,
@@ -243,16 +257,28 @@ module.exports = function (socket) {
 					});
 				});
 
-			} // If zone does not exist, abort
-
+			}
+			// If zone does not exist, abort
+			else {
+				socket.emit('created:nodes', {
+					success: false,
+					message: 'Zone not found.',
+					zoneId: zoneId,
+					nodes: data.nodes,
+					time: time
+				});
+			}
+		})
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		.catch(error => {
 			socket.emit('created:nodes', {
 				success: false,
-				message: 'Zone not found.',
+				error: error,
 				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
-
+			console.log('SERVER ERROR in create:nodes', error);
 		});
 	});
 
@@ -314,6 +340,7 @@ module.exports = function (socket) {
 				console.log('delete:nodes', deletedNodes.length + ' nodes in ' + (end - time) + ' ms');
 
 				})
+				// Catch model validation erors
 				.catch(error => {
 					socket.emit('deleted:nodes', {
 						success: false,
@@ -324,16 +351,28 @@ module.exports = function (socket) {
 					});
 				});
 
-			} // If zone does not exist, abort
-
+			}
+			// If zone does not exist, abort
+			else {
+				socket.emit('deleted:nodes', {
+					success: false,
+					message: 'Zone not found.',
+					zoneId: zoneId,
+					nodes: data.nodes,
+					time: time
+				});
+			}
+		})
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		.catch(error => {
 			socket.emit('deleted:nodes', {
 				success: false,
-				message: 'Zone not found.',
+				error: error,
 				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
-
+			console.log('SERVER ERROR in delete:nodes', error);
 		});
 	});
 
@@ -368,16 +407,28 @@ module.exports = function (socket) {
 				const end = new Date().getTime();
 				console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
 
-			} // If zone does not exist, abort
-
+			}
+			// If zone does not exist, abort
+			else {
+				socket.emit('locked:nodes', {
+					success: false,
+					message: 'Zone not found.',
+					zoneId: zoneId,
+					nodes: data.nodes,
+					time: time
+				});
+			}
+		})
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		.catch(error => {
 			socket.emit('locked:nodes', {
 				success: false,
-				message: 'Zone not found.',
+				error: error,
 				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
-
+			console.log('SERVER ERROR in lock:nodes', error);
 		});
 	});
 
@@ -411,16 +462,28 @@ module.exports = function (socket) {
 				const end = new Date().getTime();
 				console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
 
-			} // If zone does not exist, abort
-
+			}
+			// If zone does not exist, abort
+			else {
+				socket.emit('unlocked:nodes', {
+					success: false,
+					message: 'Zone not found.',
+					zoneId: zoneId,
+					nodes: data.nodes,
+					time: time
+				});
+			}
+		})
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		.catch(error => {
 			socket.emit('unlocked:nodes', {
 				success: false,
-				message: 'Zone not found.',
+				error: error,
 				zoneId: zoneId,
 				nodes: data.nodes,
 				time: time
 			});
-
+			console.log('SERVER ERROR in unlock:nodes', error);
 		});
 	});
 
