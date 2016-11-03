@@ -170,7 +170,7 @@ module.exports = function (socket) {
 				else {
 					socket.emit('joined:zone', {
 						success: false,
-						message: 'Zone not found.',
+						message: 'Zone introuvable.',
 						zoneId: zoneId,
 						time: time
 					});
@@ -190,7 +190,7 @@ module.exports = function (socket) {
 		else {
 			socket.emit('joined:zone', {
 				success: false,
-				message: 'Missing zoneId.',
+				message: 'zoneId manquant.',
 				time: time
 			});
 		}
@@ -214,7 +214,7 @@ module.exports = function (socket) {
 		else {
 			socket.emit('left:zone', {
 				success: false,
-				message: 'Not in zone.',
+				message: 'Aucune zone active.',
 				time: time
 			});
 		}
@@ -301,7 +301,7 @@ module.exports = function (socket) {
 			else {
 				socket.emit('edited:nodes', {
 					success: false,
-					message: 'Zone not found.',
+					message: 'Zone introuvable.',
 					nodes: data.nodes,
 					time: time
 				});
@@ -380,7 +380,7 @@ module.exports = function (socket) {
 			else {
 				socket.emit('created:nodes', {
 					success: false,
-					message: 'Zone not found.',
+					message: 'Zone introuvable.',
 					nodes: data.nodes,
 					time: time
 				});
@@ -469,7 +469,7 @@ module.exports = function (socket) {
 			else {
 				socket.emit('deleted:nodes', {
 					success: false,
-					message: 'Zone not found.',
+					message: 'Zone introuvable.',
 					nodes: data.nodes,
 					time: time
 				});
@@ -521,7 +521,7 @@ module.exports = function (socket) {
 			else {
 				socket.emit('locked:nodes', {
 					success: false,
-					message: 'Zone not found.',
+					message: 'Zone introuvable.',
 					nodes: data.nodes,
 					time: time
 				});
@@ -572,7 +572,7 @@ module.exports = function (socket) {
 			else {
 				socket.emit('unlocked:nodes', {
 					success: false,
-					message: 'Zone not found.',
+					message: 'Zone introuvable.',
 					nodes: data.nodes,
 					time: time
 				});
