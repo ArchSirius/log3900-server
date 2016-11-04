@@ -1,154 +1,23 @@
-const User = require('./app/user/user.model');
-const Zone = require('./app/zone/zone.model');
-const _    = require('lodash');
+const Zone      = require('../app/zone/zone.model');
+const _         = require('lodash');
+const usersCtrl = require('./socket.users.controller');
+const lockCtrl  = require('./socket.lock.controller');
 
-var lockedNodes = {};
+module.exports = function(socket) {
 
-const usersCtrl = (function() {
-
-	var users = {};
-
-	const join = function(user) {
-		if (!user || users[String(user._id)]) {
-			return false;
-		}
-		else {
-			users[String(user._id)] = { username: user.username };
-			return true;
-		}
-	};
-
-	const getUser = function(userId) {
-		return users[String(userId)];
-	};
-
-	const getZoneId = function(userId) {
-		const user = users[String(userId)];
-		if (user) {
-			return user.zoneId;
-		}
-		return undefined;
-	};
-
-	const getUsers = function() {
-		var res = [];
-		for (user in users) {
-			res.push({
-				_id: users[user]._id,
-				username: users[user].username
-			});
-		}
-		return res;
-	};
-
-	const getNames = function() {
-		var res = [];
-		for (user in users) {
-			res.push(users[user].username);
-		}
-		return res;
-	};
-
-	const leave = function(userId) {
-		if (users[String(userId)]) {
-			delete users[String(userId)];
-		}
-	};
-
-	const registerZone = function(userId, zoneId) {
-		if (users[String(userId)]) {
-			users[String(userId)].zoneId = zoneId;
-		}
-	};
-
-	const unregisterZone = function(userId, zoneId) {
-		if (users[String(userId)]) {
-			delete users[String(userId)].zoneId;
-		}
-	};
-
-	return {
-		join: join,
-		leave: leave,
-		getUser: getUser,
-		getZoneId: getZoneId,
-		getUsers: getUsers,
-		getNames: getNames,
-		registerZone: registerZone,
-		unregisterZone: unregisterZone
-	};
-}());
-
-// export function for listening to the socket
-module.exports = function (socket) {
+	/**
+	 * The _id of the user in this socket.
+	 * @private
+	 */
 	const userId = socket.decoded_token._id;
-	var username = '';
-	// Fetch user infos
-	User.findById(userId, '-salt -password')
-	.then(user => {
-		if (user) {
-			username = user.username;
-			usersCtrl.join(user);	// TODO handle return
 
-			const time = new Date().getTime();
-
-			// send the new user their name and a list of users
-			socket.emit('init', {
-				name: username,
-				users: usersCtrl.getNames(),
-				time: time
-			});
-
-			// notify other clients that a new user has joined
-			socket.broadcast.emit('user:join', {
-				name: username,
-				time: time
-			});
-		}
-		// If user does not exist, abort
-		else {
-			socket.close();
-		}
-	})
-	// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
-	.catch(error => {
-		console.log('SERVER ERROR in constructor', error);
-	});
-
-	// broadcast a user's message to other users
-	socket.on('send:message', function (data) {
-		const time = new Date().getTime();
-		socket.broadcast.emit('send:message', {
-			user: username,
-			text: data.message,
-			time: time
-		});
-		socket.emit('send:message', {
-			user: username,
-			text: data.message,
-			time: time
-		});
-	});
-
-	// clean up when a user leaves, and broadcast it to other users
-	socket.on('disconnect', function () {
-		const time = new Date().getTime();
-		socket.broadcast.emit('user:left', {
-			name: username,
-			time: time
-		});
-		usersCtrl.leave(userId);
-		const zoneId = usersCtrl.getZoneId(userId);
-		if (zoneId) {
-			socket.to(zoneId).emit('leave:zone', {
-				userId: userId,
-				time: time
-			});
-		}
-	});
-
-
-	socket.on('join:zone', data => {
+	/**
+	 * Set a user's active zone, make it join the zone's socket room, send notification in socket room with event 'join:zone'.
+	 * Sends feedback to caller with event 'joined:zone'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.zoneId - The unique _id of a zone.
+	 */
+	const joinZone = function(data) {
 		const time = new Date().getTime();
 		const zoneId = data.zoneId;
 		if (zoneId) {
@@ -194,9 +63,13 @@ module.exports = function (socket) {
 				time: time
 			});
 		}
-	});
+	};
 
-	socket.on('leave:zone', () => {
+	/**
+	 * Remove a user's active zone, make it leave the zone's socket room, send notification in socket room with event 'leave:zone'.
+	 * Sends feedback to caller with event 'left:zone'.
+	 */
+	const leaveZone = function() {
 		const time = new Date().getTime();
 		const zoneId = usersCtrl.getZoneId(userId);
 		if (zoneId) {
@@ -218,9 +91,19 @@ module.exports = function (socket) {
 				time: time
 			});
 		}
-	});
+	};
 
-	socket.on('edit:nodes', data => {
+	/**
+	 * Edit a zone's nodes and send request in socket room with event 'edit:nodes'.
+	 * Sends feedback to caller with event 'edited:nodes'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {Object[]} data.nodes - The nodes to edit.
+	 * @param {string} data.nodes[]._id - The unique _id of a node.
+	 * @param {Object} [data.nodes[].position] - The position {x, y, z} of a node.
+	 * @param {number} [data.nodes[].angle] - The angle of a node.
+	 * @param {number} [data.nodes[].scale] - The scale of a node.
+	 */
+	const editNodes = function(data) {
 		const time = new Date().getTime();
 		const zoneId = usersCtrl.getZoneId(userId);
 
@@ -242,7 +125,7 @@ module.exports = function (socket) {
 						// Find matching node
 						if (String(localNode._id) === String(userNode._id)) {
 							// Edit if node is not locked
-							if (hasAccess(zone, localNode, userId)) {
+							if (lockCtrl.hasAccess(zone, localNode, userId)) {
 
 								// _id and type cannot change
 								// Update position
@@ -317,9 +200,20 @@ module.exports = function (socket) {
 			});
 			console.log('SERVER ERROR in edit:nodes', error);
 		});
-	});
+	};
 
-	socket.on('create:nodes', data => {
+	/**
+	 * Create new nodes in a zone and send request in socket room with event 'create:nodes'.
+	 * Sends feedback to caller with event 'created:nodes'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {Object[]} data.nodes - The nodes to edit.
+	 * @param {string} data.nodes[].type - The type of a node.
+	 * @param {Object} [data.nodes[].position] - The position {x, y, z} of a node.
+	 * @param {number} [data.nodes[].angle] - The angle of a node.
+	 * @param {number} [data.nodes[].scale] - The scale of a node.
+	 * @param {string} [data.nodes[].parent] - The unique _id of a node's parent.
+	 */
+	const createNodes = function(data) {
 		const time = new Date().getTime();
 		const zoneId = usersCtrl.getZoneId(userId);
 
@@ -396,9 +290,16 @@ module.exports = function (socket) {
 			});
 			console.log('SERVER ERROR in create:nodes', error);
 		});
-	});
+	};
 
-	socket.on('delete:nodes', data => {
+	/**
+	 * Delete a zone's nodes and send request in socket room with event 'delete:nodes'.
+	 * Sends feedback to caller with event 'deleted:nodes'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {Object[]} data.nodes - The nodes to delete.
+	 * @param {string} data.nodes[]._id - The unique _id of a node.
+	 */
+	const deleteNodes = function(data) {
 		const time = new Date().getTime();
 		const zoneId = usersCtrl.getZoneId(userId);
 
@@ -420,7 +321,7 @@ module.exports = function (socket) {
 						// Find matching node
 						if (String(localNode._id) === String(userNode._id)) {
 							// Delete if node is not locked
-							if (hasAccess(zone, localNode, userId)) {
+							if (lockCtrl.hasAccess(zone, localNode, userId)) {
 
 								// Delete
 								zone.nodes.splice(i, 1);
@@ -485,21 +386,25 @@ module.exports = function (socket) {
 			});
 			console.log('SERVER ERROR in delete:nodes', error);
 		});
-	});
+	};
 
-	socket.on('lock:nodes', data => {
+	/**
+	 * Lock a zone's nodes and send request in socket room with event 'lock:nodes'.
+	 * Sends feedback to caller with event 'locked:nodes'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {Object[]} data.nodes - The nodes to lock.
+	 * @param {string} nodes[]._id - The unique _id of a node.
+	 */
+	const lockNodes = function(data) {
 		const time = new Date().getTime();
 		const zoneId = usersCtrl.getZoneId(userId);
-
 		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
 		.then(zone => {
 			// Apply changes if zone exists
 			if (zone) {
-
 				const userNodes = data.nodes;
-				const newLock = lockNodes(zone, userNodes, userId);
-
+				const newLock = lockCtrl.lockNodes(zone, userNodes, userId);
 				// Save and emit
 				socket.to(zoneId).emit('lock:nodes', {
 					userId: userId,
@@ -511,11 +416,9 @@ module.exports = function (socket) {
 					nodes: newLock,
 					time: time
 				});
-
 				// Log performance
 				const end = new Date().getTime();
 				console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
-
 			}
 			// If zone does not exist, abort
 			else {
@@ -537,21 +440,25 @@ module.exports = function (socket) {
 			});
 			console.log('SERVER ERROR in lock:nodes', error);
 		});
-	});
+	};
 
-	socket.on('unlock:nodes', data => {
+	/**
+	 * Unlock a zone's nodes and send request in socket room with event 'unlock:nodes'.
+	 * Sends feedback to caller with event 'unlocked:nodes'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {Object[]} data.nodes - The nodes to unlock.
+	 * @param {string} nodes[]._id - The unique _id of a node.
+	 */
+	const unlockNodes = function(data) {
 		const time = new Date().getTime();
 		const zoneId = usersCtrl.getZoneId(userId);
-
 		// Find the edited zone
 		Zone.findById(zoneId, '-salt -password').exec()
 		.then(zone => {
 			// Apply changes if zone exists
 			if (zone) {
-
 				const userNodes = data.nodes;
-				const newUnlock = unlockNodes(zone, userNodes, userId);
-
+				const newUnlock = lockCtrl.unlockNodes(zone, userNodes, userId);
 				// Save and emit
 				socket.to(zoneId).emit('unlock:nodes', {
 					nodes: newUnlock,
@@ -562,11 +469,9 @@ module.exports = function (socket) {
 					nodes: newUnlock,
 					time: time
 				});
-
 				// Log performance
 				const end = new Date().getTime();
 				console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
-
 			}
 			// If zone does not exist, abort
 			else {
@@ -588,9 +493,14 @@ module.exports = function (socket) {
 			});
 			console.log('SERVER ERROR in unlock:nodes', error);
 		});
-	});
+	};
 
-	socket.on('ping:position', data => {
+	/**
+	 * Ping a position in a zone and send request in socket room with event 'ping:position'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {Object} [data.position] - The position {x, y, z} to ping.
+	 */
+	const pingPosition = function(data) {
 		const time = new Date().getTime();
 		const zoneId = usersCtrl.getZoneId(userId);
 		const position = {
@@ -606,61 +516,32 @@ module.exports = function (socket) {
 				time: time
 			});
 		}
-	});
-};
-
-const minifyNode = function(node) {
-	return {
-		_id: node._id,
-		position: node.position,
-		angle: node.angle,
-		scale: node.scale,
-		updatedBy: node.updatedBy
 	};
-};
 
-const isNodeLocked = function(zone, node) {
-	return !_.isEmpty(lockedNodes[zone._id]) &&
-		   lockedNodes[zone._id][String(node._id)];
-};
+	/**
+	 * Minify a node to remove unnecessary properties.
+	 * @private
+	 * @param {Object} node - The node to minify.
+	 * @returns {Object} Minified node.
+	 */
+	const minifyNode = function(node) {
+		return {
+			_id: node._id,
+			position: node.position,
+			angle: node.angle,
+			scale: node.scale,
+			updatedBy: node.updatedBy
+		};
+	};
 
-const isNodeOwner = function(zone, node, userId) {
-	return !_.isEmpty(lockedNodes[zone._id]) &&
-		   String(lockedNodes[zone._id][String(node._id)]) === String(userId);
-};
-
-const hasAccess = function(zone, node, userId) {
-	return !isNodeLocked(zone, node) ||
-		   isNodeOwner(zone, node, userId);
-};
-
-const lockNodes = function(zone, nodes, userId) {
-	if (!lockedNodes[zone._id]) {
-		lockedNodes[zone._id] = {};
-	}
-	var newLock = [];
-	nodes.forEach(node => {
-		if (!isNodeLocked(zone, node)) {
-			lockedNodes[zone._id][String(node._id)] = String(userId);
-			newLock.push({ _id: node._id });
-		}
-	});
-	return newLock;
-};
-
-const unlockNodes = function(zone, nodes, userId) {
-	if (!lockedNodes[zone._id]) {
-		return;
-	}
-	var newUnlock = [];
-	nodes.forEach(node => {
-		if (isNodeLocked(zone, node) && isNodeOwner(zone, node, userId)) {
-			delete lockedNodes[zone._id][String(node._id)];
-			newUnlock.push({ _id: node._id });
-		}
-	});
-	if (_.isEmpty(lockedNodes[zone._id])) {
-		delete lockedNodes[zone._id];
-	}
-	return newUnlock;
+	return {
+		joinZone: joinZone,
+		leaveZone: leaveZone,
+		editNodes: editNodes,
+		createNodes: createNodes,
+		deleteNodes: deleteNodes,
+		lockNodes: lockNodes,
+		unlockNodes: unlockNodes,
+		pingPosition: pingPosition
+	};
 };
