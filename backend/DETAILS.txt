@@ -247,49 +247,49 @@ Body       : message [String]
 * join:zone *
 ************/
 Description: Join a zone's room
-           : zoneId [String]
+Body       : zoneId [String]
 
 /*************
 * leave:zone *
 *************/
 Description: Leave a zone's room
-           : --
+Body       : --
 
 /*************
 * edit:nodes *
 *************/
 Description: Edit nodes online
-           : nodes [Array]
+Body       : nodes [Array]
 
 /***************
 * create:nodes *
 ***************/
 Description: Create nodes online
-           : nodes [Array]
+Body       : nodes [Array]
 
 /***************
 * delete:nodes *
 ***************/
 Description: Delete nodes online
-           : nodes [Array]
+Body       : nodes [Array]
 
 /*************
 * lock:nodes *
 *************/
 Description: Lock nodes to prevent edit from other users
-           : nodes [Array]
+Body       : nodes [Array]
 
 /***************
 * unlock:nodes *
 ***************/
 Description: Unlock nodes to allow edit from other users
-           : nodes [Array]
+Body       : nodes [Array]
 
 /****************
 * ping:position *
 ****************/
 Description: Ping a position for users to see
-           : position [Object]
+Body       : position [Object]
 
 /*************************
 * LOG3900-01 A16 backend *
@@ -337,14 +337,14 @@ Body       : name [String]
 * join:zone *
 ************/
 Description: Tell a user (_id and username) has joined the zone
-           : user [Object]
+Body       : user [Object]
            : time
 
 /**************
 * joined:zone *
 **************/
 Description: Return join:zone feedback to caller
-           : success [Boolean]
+Body       : success [Boolean]
            : error   [Object] [optional]
            : message [String] [optional]
            : zoneId  [String]
@@ -354,14 +354,14 @@ Description: Return join:zone feedback to caller
 * leave:zone *
 *************/
 Description: Tell a user has left the zone
-           : userId [String]
+Body       : userId [String]
            : time
 
 /**************
 * left:zone *
 **************/
 Description: Return leave:zone feedback to caller
-           : success [Boolean]
+Body       : success [Boolean]
            : message [String] [optional]
            : time    [Integer]
 
