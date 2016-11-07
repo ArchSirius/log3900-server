@@ -12,6 +12,135 @@ module.exports = function(socket) {
 	const userId = socket.decoded_token._id;
 
 	/**
+	 * The list of this socket's rooms.
+	 * @private
+	 */
+	const chatrooms = [];
+
+	/**
+	 * Constructs basic user informations needed for the controllers and send basic data to user with event 'init'.
+	 * @param {Object} user - The user to own the socket.
+	 * @param {string} user._id - The unique _id of a user.
+	 * @param {string} user.username - The username of a user.
+	 */
+	const onInit = function(user) {
+		const time = new Date().getTime();
+		usersCtrl.join(socket, user);
+		socket.emit('init', {
+			user: {
+				userId: userId,
+				username: user.username
+			},
+			time: time
+		});
+	};
+
+	/**
+	 * Disconnect a user and send notifications in socket rooms with events 'user:left' and 'leave:zone'.
+	 */
+	const disconnect = function() {
+		const time = new Date().getTime();
+		const isDeleted = usersCtrl.leave(socket, userId); // TODO use isDeleted to manage disconnects
+		leaveZone();
+		chatrooms.forEach(room => {
+			socket.broadcast.to(room).emit('user:left', {
+				userId: userId,
+				time: time
+			});
+		});
+	};
+
+	/**
+	 * Join a chatroom, send notification in socket room with event 'user:join'.
+	 * Sends feedback to caller with event 'joined:chatroom'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.room - The room to join.
+	 */
+	const joinChatroom = function(data) {
+		const time = new Date().getTime();
+		const room = data.room;
+		if (room && chatrooms.indexOf(room) === -1) {
+			socket.join(room);
+			chatrooms.push(room);
+			socket.broadcast.to(room).emit('user:join', {
+				user: usersCtrl.getUser(userId),
+				time: time
+			});
+			socket.emit('joined:chatroom', {
+				success: true,
+				room: room,
+				users: usersCtrl.getNames(),
+				time: time
+			});
+		}
+		else {
+			socket.emit('joined:chatroom', {
+				success: false,
+				message: 'Vous êtes déjà dans ce canal.',
+				room: room,
+				users: usersCtrl.getNames(),
+				time: time
+			});
+		}
+	};
+
+	/**
+	 * Leave a chatroom, send notification in socket room with event 'user:left'.
+	 * Sends feedback to caller with event 'left:chatroom'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.room - The room to leave.
+	 */
+	const leaveChatroom = function(data) {
+		const time = new Date().getTime();
+		const room = data.room;
+		const index = chatrooms.indexOf(room);
+		if (room && index !== -1) {
+			socket.leave(room);
+			chatrooms.splice(index, 1);
+			socket.broadcast.to(room).emit('user:left', {
+				userId: userId,
+				time: time
+			});
+			socket.emit('left:chatroom', {
+				success: true,
+				room: room,
+				time: time
+			});
+		}
+		else {
+			socket.emit('left:chatroom', {
+				success: false,
+				message: 'Vous n\'êtes pas dans ce canal.',
+				room: room,
+				time: time
+			});
+		}
+	};
+
+	/**
+	 * Send message in socket room with event 'send:message'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.room - The room to broadcast in.
+	 * @param {string} data.message - The message to send.
+	 */
+	const sendMessage = function(data) {
+		const time = new Date().getTime();
+		const room = data.room;
+		if (room) {
+			socket.broadcast.to(room).emit('send:message', {
+				userId: userId,
+				text: data.message,
+				time: time
+			});
+			socket.emit('send:message', {
+				userId: userId,
+				text: data.message,
+				time: time
+			});
+		}
+	};
+
+	/**
 	 * Set a user's active zone, make it join the zone's socket room, send notification in socket room with event 'join:zone'.
 	 * Sends feedback to caller with event 'joined:zone'.
 	 * @param {Object} data - The data received from the caller in JSON form.
@@ -26,7 +155,7 @@ module.exports = function(socket) {
 			Zone.findById(zoneId, '-salt -password').exec()
 			.then(zone => {
 				if (zone) {
-					socket.to(zoneId).emit('join:zone', {
+					socket.broadcast.to(zoneId).emit('join:zone', {
 						user: usersCtrl.getUser(userId),
 						time: time
 					});
@@ -74,7 +203,7 @@ module.exports = function(socket) {
 		const zoneId = usersCtrl.getZoneId(userId);
 		if (zoneId) {
 			usersCtrl.unregisterZone(userId, zoneId);
-			socket.to(zoneId).emit('leave:zone', {
+			socket.broadcast.to(zoneId).emit('leave:zone', {
 				userId: userId,
 				time: time
 			});
@@ -153,7 +282,7 @@ module.exports = function(socket) {
 				zone.save()
 				.then(() => {
 
-					socket.to(zoneId).emit('edit:nodes', {
+					socket.broadcast.to(zoneId).emit('edit:nodes', {
 						userId: userId,
 						nodes: updatedNodes,
 						time: time
@@ -243,7 +372,7 @@ module.exports = function(socket) {
 
 					// Return created nodes with simple structure
 					const nodes = saved.nodes.slice(index).map(minifyNode);
-					socket.to(zoneId).emit('create:nodes', {
+					socket.broadcast.to(zoneId).emit('create:nodes', {
 						userId: userId,
 						nodes: nodes,
 						time: time
@@ -339,7 +468,7 @@ module.exports = function(socket) {
 				zone.save()
 				.then(() => {
 
-					socket.to(zoneId).emit('delete:nodes', {
+					socket.broadcast.to(zoneId).emit('delete:nodes', {
 						userId: userId,
 						nodes: deletedNodes,
 						time: time
@@ -406,7 +535,7 @@ module.exports = function(socket) {
 				const userNodes = data.nodes;
 				const newLock = lockCtrl.lockNodes(zone, userNodes, userId);
 				// Save and emit
-				socket.to(zoneId).emit('lock:nodes', {
+				socket.broadcast.to(zoneId).emit('lock:nodes', {
 					userId: userId,
 					nodes: newLock,
 					time: time
@@ -460,7 +589,7 @@ module.exports = function(socket) {
 				const userNodes = data.nodes;
 				const newUnlock = lockCtrl.unlockNodes(zone, userNodes, userId);
 				// Save and emit
-				socket.to(zoneId).emit('unlock:nodes', {
+				socket.broadcast.to(zoneId).emit('unlock:nodes', {
 					nodes: newUnlock,
 					time: time
 				});
@@ -535,6 +664,11 @@ module.exports = function(socket) {
 	};
 
 	return {
+		onInit: onInit,
+		disconnect: disconnect,
+		joinChatroom: joinChatroom,
+		leaveChatroom: leaveChatroom,
+		sendMessage: sendMessage,
 		joinZone: joinZone,
 		leaveZone: leaveZone,
 		editNodes: editNodes,

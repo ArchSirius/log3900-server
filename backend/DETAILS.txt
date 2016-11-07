@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 03/11/16     *
+* Socket.io 07/11/16     *
 *************************/
 
 /*
@@ -40,6 +40,7 @@ POST   /auth/login
 connect
 authenticate
 disconnect
+join:chatroom
 join:zone
 leave:zone
 send:message
@@ -58,6 +59,8 @@ init
 send:message
 user:join
 user:left
+joined:chatroom
+left:chatroom
 join:zone
 joined:zone
 leave:zone
@@ -237,11 +240,24 @@ Body       : token [String]
 Description: Terminate a Socket.io connection
 Body       : --
 
+/****************
+* join:chatroom *
+****************/
+Description: Join a chatroom
+Body       : room [String]
+
+/*****************
+* leave:chatroom *
+*****************/
+Description: Leave a chatroom
+Body       : room [String]
+
 /***************
 * send:message *
 ***************/
 Description: Send a message to the chat
-Body       : message [String]
+Body       : room    [String]
+           : message [String]
 
 /************
 * join:zone *
@@ -306,32 +322,50 @@ Body       : --
 /*******
 * init *
 *******/
-Description: Initialize an accepted Socket.io connection with username 'name' and connected users 'users'
-Body       : name  [String]
-           : users [Array]
-           : time  [Integer]
+Description: Initialize an accepted Socket.io connection with user infos
+Body       : user [Object]
+           : time [Integer]
 
 /***************
 * send:message *
 ***************/
 Description: Send a message 'text' from user 'user' to the chat
-Body       : user [String]
-           : text [String]
-           : time [Integer]
+Body       : userId [String]
+           : text   [String]
+           : time   [Integer]
 
 /************
 * user:join *
 ************/
-Description: Tell a user of username 'name' has joined
-Body       : name [String]
-           : time [Integer]
+Description: Tell a user has joined
+Body       : userId [String]
+           : time   [Integer]
 
 /************
 * user:left *
 ************/
-Description: Tell a user of username 'name' has left
-Body       : name [String]
-           : time [Integer]
+Description: Tell a user has left
+Body       : userId [String]
+           : time   [Integer]
+
+/******************
+* joined:chatroom *
+******************/
+Description: Return join:chatroom feedback to caller
+Body       : success [Boolean]
+           : message [String] [optional]
+           : room    [String]
+           : users   [Array] [optional]
+           : time    [Integer]
+
+/****************
+* left:chatroom *
+****************/
+Description: Return leave:chatroom feedback to caller
+Body       : success [Boolean]
+           : message [String] [optional]
+           : room    [String]
+           : time    [Integer]
 
 /************
 * join:zone *
@@ -357,9 +391,9 @@ Description: Tell a user has left the zone
 Body       : userId [String]
            : time
 
-/**************
+/************
 * left:zone *
-**************/
+************/
 Description: Return leave:zone feedback to caller
 Body       : success [Boolean]
            : message [String] [optional]

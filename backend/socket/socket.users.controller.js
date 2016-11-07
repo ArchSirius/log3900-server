@@ -14,7 +14,7 @@ var users = {};
  */
 exports.join = function(socket, user) {
 	if (users[String(user._id)]) {
-		if (!getSocket(user._id, socket.id)) {
+		if (!this.getSocket(user._id, socket.id)) {
 			users[String(user._id)].sockets.push(socket);
 		}
 		return false;
@@ -32,7 +32,11 @@ exports.join = function(socket, user) {
  * @returns {Object} A user.
  */
 exports.getUser = function(userId) {
-	return users[String(userId)];
+	const user = users[String(userId)];
+	return {
+		userId: user._id,
+		username: user.username
+	};
 };
 
 /**
@@ -79,6 +83,7 @@ exports.getNames = function() {
  * Remove a user socket if it is connected, the user if no sockets are left.
  * @param {Object} socket - The user's socket.
  * @param {string} userId - The unique _id of a user.
+ * @param {boolean} true if user has no sockets left, false otherwise.
  */
 exports.leave = function(socket, userId) {
 	if (users[String(userId)]) {
@@ -89,8 +94,10 @@ exports.leave = function(socket, userId) {
 		}
 		if (users[String(userId)].sockets.length === 0) {
 			delete users[String(userId)];
+			return true;
 		}
 	}
+	return false;
 };
 
 /**
@@ -120,8 +127,7 @@ exports.unregisterZone = function(userId, zoneId) {
  * @param {string} userId - The unique _id of a user.
  * @returns {Object[]} user sockets.
  */
-const getSockets = function(userId) {
-	console.log(userId, users);
+exports.getSockets = function(userId) {
 	const user = users[String(userId)];
 	if (user) {
 		return user.sockets;
@@ -135,8 +141,8 @@ const getSockets = function(userId) {
  * @param {string} socketId - The socket id.
  * @returns {Object} user socket.
  */
-const getSocket = function(userId, socketId) {
-	const sockets = getSockets(userId);
+exports.getSocket = function(userId, socketId) {
+	const sockets = this.getSockets(userId);
 	for (var i = 0; i < sockets.length; ++i) {
 		if (sockets[i].id === socketId) {
 			return sockets[i];
