@@ -5,20 +5,25 @@
 var users = {};
 
 /**
- * Add a user if it is not already connected.
+ * Add a user if it is not already connected, a socket if it is new.
+ * @param {Object} socket - The user's socket.
  * @param {Object} user - The user to add.
  * @param {string} user._id - The unique _id of a user.
  * @param {string} user.username - The username of a user.
- * @returns {boolean} Success status.
+ * @returns {boolean} true if the user is new
  */
-exports.join = function(user) {
-	if (!user || users[String(user._id)]) {
+exports.join = function(socket, user) {
+	if (users[String(user._id)]) {
+		if (!getSocket(user._id, socket.id)) {
+			users[String(user._id)].sockets.push(socket);
+		}
 		return false;
 	}
-	else {
-		users[String(user._id)] = { username: user.username };
-		return true;
-	}
+	users[String(user._id)] = {
+		username: user.username,
+		sockets: [ socket ]
+	};
+	return true;
 };
 
 /**
@@ -71,12 +76,20 @@ exports.getNames = function() {
 };
 
 /**
- * Remove a user if it is connected.
+ * Remove a user socket if it is connected, the user if no sockets are left.
+ * @param {Object} socket - The user's socket.
  * @param {string} userId - The unique _id of a user.
  */
-exports.leave = function(userId) {
+exports.leave = function(socket, userId) {
 	if (users[String(userId)]) {
-		delete users[String(userId)];
+		for (var i = 0; i < users[String(userId)].sockets.length; ++i) {
+			if (users[String(userId)].sockets[i].id === socket.id) {
+				users[String(userId)].sockets.splice(i, 1);
+			}
+		}
+		if (users[String(userId)].sockets.length === 0) {
+			delete users[String(userId)];
+		}
 	}
 };
 
@@ -100,4 +113,34 @@ exports.unregisterZone = function(userId, zoneId) {
 	if (users[String(userId)]) {
 		delete users[String(userId)].zoneId;
 	}
+};
+
+/**
+ * Return all user sockets.
+ * @param {string} userId - The unique _id of a user.
+ * @returns {Object[]} user sockets.
+ */
+const getSockets = function(userId) {
+	console.log(userId, users);
+	const user = users[String(userId)];
+	if (user) {
+		return user.sockets;
+	}
+	return undefined;
+};
+
+/**
+ * Return a single user socket.
+ * @param {string} userId - The unique _id of a user.
+ * @param {string} socketId - The socket id.
+ * @returns {Object} user socket.
+ */
+const getSocket = function(userId, socketId) {
+	const sockets = getSockets(userId);
+	for (var i = 0; i < sockets.length; ++i) {
+		if (sockets[i].id === socketId) {
+			return sockets[i];
+		}
+	}
+	return undefined;
 };

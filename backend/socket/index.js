@@ -14,7 +14,7 @@ module.exports = function (socket) {
 // START TODO move to controller and implement chatrooms logic
 		if (user) {
 			username = user.username;
-			usersCtrl.join(user); // TODO handle return
+			const isNew = usersCtrl.join(socket, user);
 
 			const time = new Date().getTime();
 
@@ -25,11 +25,13 @@ module.exports = function (socket) {
 				time: time
 			});
 
-			// notify other clients that a new user has joined
-			socket.broadcast.emit('user:join', {
-				name: username,
-				time: time
-			});
+			if (isNew) {
+				// notify other clients that a new user has joined
+				socket.broadcast.emit('user:join', {
+					name: username,
+					time: time
+				});
+			}
 		} // If user does not exist, abort
 	})
 	// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
@@ -59,7 +61,7 @@ module.exports = function (socket) {
 			name: username,
 			time: time
 		});
-		usersCtrl.leave(userId);
+		usersCtrl.leave(socket, userId);
 		const zoneId = usersCtrl.getZoneId(userId);
 		if (zoneId) {
 			socket.to(zoneId).emit('leave:zone', {
