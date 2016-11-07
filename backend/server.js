@@ -4,7 +4,7 @@ var app         = express();
 var bodyParser  = require('body-parser');
 var morgan      = require('morgan');
 var mongoose    = require('mongoose');
-var socket      = require('./socket.js');
+var socket      = require('./socket');
 var socketioJwt = require('socketio-jwt');
 var config      = require('./config');
 
