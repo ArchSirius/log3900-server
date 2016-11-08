@@ -29,8 +29,18 @@ var NodeSchema = new mongoose.Schema({
     default: 0.0
   },
   scale: {
-    type: Number,
-    default: 0.0
+    x: {
+      type: Number,
+      default: 1.0
+    },
+    y: {
+      type: Number,
+      default: 1.0
+    },
+    z: {
+      type: Number,
+      default: 1.0
+    }
   },
   parent: mongoose.Schema.Types.ObjectId,
   createdBy: mongoose.Schema.Types.ObjectId,

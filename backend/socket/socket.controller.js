@@ -230,7 +230,7 @@ module.exports = function(socket) {
 	 * @param {string} data.nodes[]._id - The unique _id of a node.
 	 * @param {Object} [data.nodes[].position] - The position {x, y, z} of a node.
 	 * @param {number} [data.nodes[].angle] - The angle of a node.
-	 * @param {number} [data.nodes[].scale] - The scale of a node.
+	 * @param {Object} [data.nodes[].scale] - The scale {x, y, z} of a node.
 	 */
 	const editNodes = function(data) {
 		const time = new Date().getTime();
@@ -339,7 +339,7 @@ module.exports = function(socket) {
 	 * @param {string} data.nodes[].type - The type of a node.
 	 * @param {Object} [data.nodes[].position] - The position {x, y, z} of a node.
 	 * @param {number} [data.nodes[].angle] - The angle of a node.
-	 * @param {number} [data.nodes[].scale] - The scale of a node.
+	 * @param {Object} [data.nodes[].scale] - The scale {x, y, z} of a node.
 	 * @param {string} [data.nodes[].parent] - The unique _id of a node's parent.
 	 */
 	const createNodes = function(data) {
