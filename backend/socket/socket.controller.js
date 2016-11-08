@@ -393,7 +393,7 @@ module.exports = function(socket) {
 					socket.emit('created:nodes', {
 						success: false,
 						error: error,
-						nodes: nodes,
+						nodes: userNodes,
 						time: time
 					});
 				});
