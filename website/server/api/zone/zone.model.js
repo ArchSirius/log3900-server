@@ -50,7 +50,10 @@ var NodeSchema = new Schema({
       default: 1.0
     }
   },
-  parent: Schema.Types.ObjectId,
+  parent: {
+    type: Schema.Types.ObjectId,
+    default: null
+  },
   createdBy: Schema.Types.ObjectId,
   updatedBy: Schema.Types.ObjectId
 }, {

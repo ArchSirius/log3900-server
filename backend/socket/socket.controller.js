@@ -260,7 +260,9 @@ module.exports = function(socket) {
 								// Update position
 								localNode.position = _.extend(localNode.position, userNode.position);
 								// Update angle
-								localNode.angle = _.extend(localNode.angle, userNode.angle);
+								if (userNode.angle) {
+									localNode.angle = userNode.angle;
+								}
 								// Update angle
 								localNode.scale = _.extend(localNode.scale, userNode.scale);
 								// parent cannot change
