@@ -42,7 +42,10 @@ var NodeSchema = new mongoose.Schema({
       default: 1.0
     }
   },
-  parent: mongoose.Schema.Types.ObjectId,
+  parent: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null
+  },
   createdBy: mongoose.Schema.Types.ObjectId,
   updatedBy: mongoose.Schema.Types.ObjectId
 }, {
