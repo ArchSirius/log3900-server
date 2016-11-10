@@ -272,7 +272,7 @@ module.exports = function(socket) {
 								localNode.updatedAt = time;
 
 								// Prepare update
-								updatedNodes.push(minifyNode(localNode));
+								updatedNodes.push(minifyNodeStrict(localNode));
 
 							}
 						}
@@ -374,7 +374,7 @@ module.exports = function(socket) {
 				.then(saved => {
 
 					// Return created nodes with simple structure
-					var nodes = saved.nodes.slice(index).map(minifyNode);
+					var nodes = saved.nodes.slice(index).map(minifyNodeSoft);
 					// Send back localId
 					nodes.forEach((node, nIndex) => {
 						node.localId = userNodes[nIndex].localId;
@@ -655,17 +655,38 @@ module.exports = function(socket) {
 	};
 
 	/**
-	 * Minify a node to remove unnecessary properties.
+	 * Minify a node to remove all unnecessary properties.
 	 * @private
 	 * @param {Object} node - The node to minify.
 	 * @returns {Object} Minified node.
 	 */
-	const minifyNode = function(node) {
+	const minifyNodeStrict = function(node) {
 		return {
 			_id: node._id,
 			position: node.position,
 			angle: node.angle,
 			scale: node.scale,
+			updatedBy: node.updatedBy
+		};
+	};
+
+	/**
+	 * Minify a node to remove a few unnecessary properties.
+	 * @private
+	 * @param {Object} node - The node to minify.
+	 * @returns {Object} Minified node.
+	 */
+	const minifyNodeSoft = function(node) {
+		return {
+			_id: node._id,
+			type: node.type,
+			position: node.position,
+			angle: node.angle,
+			scale: node.scale,
+			parent: node.parent,
+			createdAt: node.createdAt,
+			updatedAt: node.updatedAt,
+			createdBy: node.createdBy,
 			updatedBy: node.updatedBy
 		};
 	};
