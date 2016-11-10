@@ -343,6 +343,7 @@ module.exports = function(socket) {
 	 * @param {number} [data.nodes[].angle] - The angle of a node.
 	 * @param {Object} [data.nodes[].scale] - The scale {x, y, z} of a node.
 	 * @param {string} [data.nodes[].parent] - The unique _id of a node's parent.
+	 * @param {string} [data.nodes[].localId] - The unique client's local id of a node.
 	 */
 	const createNodes = function(data) {
 		const time = new Date().getTime();
@@ -373,7 +374,11 @@ module.exports = function(socket) {
 				.then(saved => {
 
 					// Return created nodes with simple structure
-					const nodes = saved.nodes.slice(index).map(minifyNode);
+					var nodes = saved.nodes.slice(index).map(minifyNode);
+					// Send back localId
+					nodes.forEach((node, nIndex) => {
+						node.localId = userNodes[nIndex].localId;
+					});
 					socket.broadcast.to(zoneId).emit('create:nodes', {
 						userId: userId,
 						nodes: nodes,
