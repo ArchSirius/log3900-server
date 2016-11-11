@@ -3,8 +3,9 @@
 var crypto       = require('crypto');
 var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
+var Schema       = mongoose.Schema;
 
-var UserSchema = new mongoose.Schema({
+var UserSchema = new Schema({
   username: {
     type: String,
     required: true
