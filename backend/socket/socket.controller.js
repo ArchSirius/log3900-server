@@ -2,6 +2,7 @@ const Zone      = require('../app/zone/zone.model');
 const _         = require('lodash');
 const usersCtrl = require('./socket.users.controller');
 const lockCtrl  = require('./socket.lock.controller');
+const msgCtrl   = require('./socket.message.controller');
 
 module.exports = function(socket) {
 
@@ -107,6 +108,28 @@ module.exports = function(socket) {
 				time: time
 			});
 		}
+	};
+
+	/**
+	 * Send a group message to a room/channel.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.room - The room to broadcast in.
+	 * @param {string} data.text - The message to send.
+	 */
+	const sendGroupMessage = function(data) {
+		const time = new Date().getTime();
+		//TODO
+	};
+
+	/**
+	 * Send a private message to a user.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.user - The target user to receive the message.
+	 * @param {string} data.text - The message to send.
+	 */
+	const sendPrivateMessage = function(data) {
+		const time = new Date().getTime();
+		//TODO
 	};
 
 	/**

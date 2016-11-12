@@ -33,10 +33,13 @@ exports.join = function(socket, user) {
  */
 exports.getUser = function(userId) {
 	const user = users[String(userId)];
-	return {
+	if (user) {
+		return {
 		userId: user._id,
-		username: user.username
-	};
+			username: user.username
+		};
+	}
+	return undefined;
 };
 
 /**
@@ -163,12 +166,14 @@ exports.getSockets = function(userId) {
  */
 exports.getSocket = function(userId, socketId) {
 	const sockets = this.getSockets(userId);
+	if (!sockets) {
+		return undefined;
+	}
 	for (var i = 0; i < sockets.length; ++i) {
 		if (sockets[i].id === socketId) {
 			return sockets[i];
 		}
 	}
-	return undefined;
 };
 
 /**

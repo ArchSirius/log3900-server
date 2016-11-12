@@ -32,7 +32,6 @@ ChatRelationSchema.statics.get = function(userA, userB, callback) {
       { userA: userB, userB: userA }
     ]
   },
-  { channel: 1, _id: 0 },
   callback);
 };
 
