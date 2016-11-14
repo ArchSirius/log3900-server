@@ -44,6 +44,7 @@ exports.sendPrivateMessage = function(senderId, recipientId, text) {
  */
 exports.fetchPendingMessages = function(user, callback) {
 	const query = PendingMessage.find({ user: user })
+	.sort({ createdAt: 1 })
 	.populate({
 		path: 'message',
 		populate: {
@@ -142,7 +143,7 @@ const findOrCreateChatRelation = function(sender, recipient, callback) {
  */
 const broadcastMessage = function(senderId, senderSocket, room, text) {
 	socket.broadcast.to(room).emit('incoming:group:message', {
-		from: senderId,
+		from: usersCtrl.getUser(senderId),
 		text: text,
 		time: new Date().getTime()
 	});
@@ -161,8 +162,8 @@ const emitMessage = function(senderId, recipientId, text) {
 	if (sockets) {
 		const sent = false;
 		sockets.forEach(socket => {
-			socket.emit('incoming:private:message', {
-				from: senderId,
+			socket.emit('send:private:message', {
+				from: usersCtrl.getUser(senderId),
 				text: text,
 				time: new Date().getTime()
 			});

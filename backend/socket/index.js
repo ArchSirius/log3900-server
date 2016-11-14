@@ -22,6 +22,7 @@ module.exports = function (socket) {
 	socket.on('disconnect', controller.disconnect);
 	socket.on('join:chatroom', controller.joinChatroom);
 	socket.on('leave:chatroom', controller.leaveChatroom);
+	socket.on('send:private:message', controller.sendPrivateMessage);
 	socket.on('send:message', controller.sendMessage);
 
 	socket.on('join:zone', controller.joinZone);

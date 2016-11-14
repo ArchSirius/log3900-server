@@ -28,6 +28,11 @@ module.exports = function(socket) {
 			},
 			time: time
 		});
+		const pendingMessages = msgCtrl.fetchPendingMessages(userId, messages => {
+			messages.forEach(message => {
+				msgCtrl.emitMessage(message.createdBy._id, userId, message.text);
+			});
+		});
 	};
 
 	/**
@@ -122,14 +127,27 @@ module.exports = function(socket) {
 	};
 
 	/**
-	 * Send a private message to a user.
+	 * Send a private message to a user with event 'send:private:message'.
+	 * Sends feedback to caller with event 'sent:private:message'.
 	 * @param {Object} data - The data received from the caller in JSON form.
-	 * @param {string} data.user - The target user to receive the message.
+	 * @param {string} data.to - The target user to receive the message.
 	 * @param {string} data.text - The message to send.
 	 */
 	const sendPrivateMessage = function(data) {
 		const time = new Date().getTime();
-		//TODO
+		try {
+			msgCtrl.sendPrivateMessage(userId, data.to, data.text);
+			socket.emit('sent:private:message', {
+				success: true,
+				time: time
+			});
+		}
+		catch (error) {
+			socket.emit('sent:private:message', {
+				success: false,
+				time: time
+			});
+		}
 	};
 
 	/**
@@ -720,6 +738,7 @@ module.exports = function(socket) {
 		disconnect: disconnect,
 		joinChatroom: joinChatroom,
 		leaveChatroom: leaveChatroom,
+		sendPrivateMessage: sendPrivateMessage,
 		sendMessage: sendMessage,
 		joinZone: joinZone,
 		leaveZone: leaveZone,
