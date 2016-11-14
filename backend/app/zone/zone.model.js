@@ -56,10 +56,7 @@ var NodeSchema = new Schema({
     ref: 'User'
   }
 }, {
-  timestamps: {
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
-  }
+  timestamps: true
 });
 
 var ZoneSchema = new Schema({
@@ -91,10 +88,7 @@ var ZoneSchema = new Schema({
     ref: 'User'
   }
 }, {
-  timestamps: {
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
-  }
+  timestamps: true
 });
 
 /**

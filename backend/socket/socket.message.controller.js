@@ -37,6 +37,30 @@ exports.sendPrivateMessage = function(senderId, recipientId, text) {
 };
 
 /**
+ * Fetch a user's pending messages.
+ * @param {string|Object} user - The user or its unique _id.
+ * @param {callback} [callback] - The callback that handles the response.
+ * @returns {Promise} A promise to return the pending messages.
+ */
+exports.fetchPendingMessages = function(user, callback) {
+	const query = PendingMessage.find({ user: user })
+	.populate({
+		path: 'message',
+		populate: {
+			path: 'createdBy',
+			select: 'username'
+		}
+	});
+	query.exec().then(messages => {
+		if (callback) {
+			callback(messages);
+		}
+		query.remove().exec();
+	});
+	return query.exec();
+};
+
+/**
  * Find a channel if it exists or create it if it does not.
  * @private
  * @param {string} name - The name of the channel, e.g. a zone's _id.

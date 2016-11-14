@@ -15,10 +15,6 @@ var PendingMessageSchema = new Schema({
     ref: 'Message',
     required: true
   }
-}, {
-  timestamps: {
-    createdAt: 'createdAt'
-  }
 });
 
 module.exports = mongoose.model('PendingMessage', PendingMessageSchema);
