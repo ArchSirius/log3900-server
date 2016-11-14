@@ -1,5 +1,5 @@
 /**
- * Contains the connected users and their active zone, if any.
+ * Contains the connected users and their active zone and chatrooms, if any.
  * @private
  */
 var users = {};
@@ -54,6 +54,7 @@ exports.getZoneId = function(userId) {
 
 /**
  * Return all connected users.
+ * @deprecated since 14-11-16
  * @returns {Object[]} Connected users.
  */
 exports.getUsers = function() {
@@ -87,6 +88,7 @@ exports.getZoneUsers = function(zoneId) {
 
 /**
  * Return all connected users' usernames.
+ * @deprecated since 14-11-16
  * @returns {string[]} Connected users' usernames.
  */
 exports.getNames = function() {
@@ -143,7 +145,7 @@ exports.unregisterZone = function(userId, zoneId) {
 /**
  * Return all user sockets.
  * @param {string} userId - The unique _id of a user.
- * @returns {Object[]} user sockets.
+ * @returns {Object[]} User sockets.
  */
 exports.getSockets = function(userId) {
 	const user = users[String(userId)];
@@ -157,7 +159,7 @@ exports.getSockets = function(userId) {
  * Return a single user socket.
  * @param {string} userId - The unique _id of a user.
  * @param {string} socketId - The socket id.
- * @returns {Object} user socket.
+ * @returns {Object} User socket.
  */
 exports.getSocket = function(userId, socketId) {
 	const sockets = this.getSockets(userId);
@@ -167,4 +169,71 @@ exports.getSocket = function(userId, socketId) {
 		}
 	}
 	return undefined;
+};
+
+/**
+ * Add a user in a chatroom.
+ * @param {string} userId - The unique _id of a user.
+ * @param {string} room - The chatroom.
+ * @param {Boolean} Success.
+ */
+exports.joinChatroom = function(userId, room) {
+	if (users[String(userId)]) {
+		if (!users[String(userId)].rooms) {
+			users[String(userId)].rooms = [];
+		}
+		if (users[String(userId)].rooms.indexOf() === -1) {
+			users[String(userId)].rooms.push(room);
+			return true;
+		}
+	}
+	return false;
+};
+
+/**
+ * Remove a user from a chatroom.
+ * @param {string} userId - The unique _id of a user.
+ * @param {string} room - The chatroom.
+ * @param {Boolean} Success.
+ */
+exports.leaveChatroom = function(userId, room) {
+	if (users[String(userId)] && users[String(userId)].rooms) {
+		const i = users[String(userId)].rooms.indexOf(room);
+		if (i !== -1) {
+			users[String(userId)].rooms.splice(i, 1);
+			return true;
+		}
+	}
+	return false;
+};
+
+/**
+ * Return all user chatrooms.
+ * @param {string} userId - The unique _id of a user.
+ * @returns {Object[]} User chatrooms.
+ */
+exports.getChatrooms = function(userId) {
+	const user = users[String(userId)];
+	if (user && user.rooms) {
+		return user.rooms;
+	}
+	return [];
+};
+
+/**
+ * Return all users connected in a chatroom.
+ * @param {string} room - The room.
+ * @returns {Object[]} Connected users.
+ */
+exports.getChatroomUsers = function(room) {
+	var res = [];
+	for (user in users) {
+		if (users[user].rooms.indexOf(room) !== -1) {
+			res.push({
+				_id: users[user]._id,
+				username: users[user].username
+			});
+		}
+	}
+	return res;
 };

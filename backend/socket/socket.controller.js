@@ -12,12 +12,6 @@ module.exports = function(socket) {
 	const userId = socket.decoded_token._id;
 
 	/**
-	 * The list of this socket's rooms.
-	 * @private
-	 */
-	const chatrooms = [];
-
-	/**
 	 * Constructs basic user informations needed for the controllers and send basic data to user with event 'init'.
 	 * @param {Object} user - The user to own the socket.
 	 * @param {string} user._id - The unique _id of a user.
@@ -42,6 +36,7 @@ module.exports = function(socket) {
 		const time = new Date().getTime();
 		const isDeleted = usersCtrl.leave(socket, userId); // TODO use isDeleted to manage disconnects
 		leaveZone();
+		const chatrooms = usersCtrl.getChatrooms(userId);
 		chatrooms.forEach(room => {
 			socket.broadcast.to(room).emit('user:left', {
 				user: usersCtrl.getUser(userId),
@@ -59,9 +54,8 @@ module.exports = function(socket) {
 	const joinChatroom = function(data) {
 		const time = new Date().getTime();
 		const room = data.room;
-		if (room && chatrooms.indexOf(room) === -1) {
+		if (room && usersCtrl.joinChatroom(userId, room)) {
 			socket.join(room);
-			chatrooms.push(room);
 			socket.broadcast.to(room).emit('user:join', {
 				user: usersCtrl.getUser(userId),
 				time: time
@@ -69,7 +63,7 @@ module.exports = function(socket) {
 			socket.emit('joined:chatroom', {
 				success: true,
 				room: room,
-				users: usersCtrl.getNames(),
+				users: usersCtrl.getChatroomUsers(room),
 				time: time
 			});
 		}
@@ -78,7 +72,7 @@ module.exports = function(socket) {
 				success: false,
 				message: 'Vous êtes déjà dans ce canal.',
 				room: room,
-				users: usersCtrl.getNames(),
+				users: usersCtrl.getChatroomUsers(room),
 				time: time
 			});
 		}
@@ -93,10 +87,8 @@ module.exports = function(socket) {
 	const leaveChatroom = function(data) {
 		const time = new Date().getTime();
 		const room = data.room;
-		const index = chatrooms.indexOf(room);
-		if (room && index !== -1) {
+		if (room && usersCtrl.leaveChatroom(userId, room)) {
 			socket.leave(room);
-			chatrooms.splice(index, 1);
 			socket.broadcast.to(room).emit('user:left', {
 				user: usersCtrl.getUser(userId),
 				time: time
@@ -153,6 +145,7 @@ module.exports = function(socket) {
 		const zoneId = data.zoneId;
 		if (zoneId) {
 			usersCtrl.registerZone(userId, zoneId);
+			usersCtrl.joinChatroom(userId, zoneId);
 			socket.join(zoneId);
 			Zone.findById(zoneId, '-salt -password').exec()
 			.then(zone => {
@@ -210,6 +203,7 @@ module.exports = function(socket) {
 		const zoneId = usersCtrl.getZoneId(userId);
 		if (zoneId) {
 			usersCtrl.unregisterZone(userId, zoneId);
+			usersCtrl.leaveChatroom(userId, zoneId);
 			socket.broadcast.to(zoneId).emit('leave:zone', {
 				user: usersCtrl.getUser(userId),
 				time: time
