@@ -164,6 +164,11 @@ module.exports = function(socket) {
 					socket.emit('joined:zone', {
 						success: true,
 						zoneId: zoneId,
+						data: {
+							users: usersCtrl.getZoneUsers(zoneId),
+							nodes: zone.nodes,
+							lockedNodes: lockCtrl.getZoneLocks(zoneId)
+						},
 						time: time
 					});
 				}

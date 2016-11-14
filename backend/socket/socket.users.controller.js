@@ -68,6 +68,24 @@ exports.getUsers = function() {
 };
 
 /**
+ * Return all users connected in a zone.
+ * @param {string} zoneId - The unique _id of a zone.
+ * @returns {Object[]} Connected users.
+ */
+exports.getZoneUsers = function(zoneId) {
+	var res = [];
+	for (user in users) {
+		if (users[user].zoneId === zoneId) {
+			res.push({
+				_id: users[user]._id,
+				username: users[user].username
+			});
+		}
+	}
+	return res;
+};
+
+/**
  * Return all connected users' usernames.
  * @returns {string[]} Connected users' usernames.
  */

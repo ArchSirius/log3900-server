@@ -87,3 +87,15 @@ exports.unlockNodes = function(zone, nodes, userId) {
 	}
 	return newUnlock;
 };
+
+/**
+ * Return locked nodes of a zone.
+ * @param {string} zoneId - The unique _id of a zone.
+ * @returns {Object[]} The array of locked nodes.
+ */
+exports.getZoneLocks = function(zoneId) {
+	if (!lockedNodes[zoneId]) {
+		return [];
+	}
+	return lockedNodes[zoneId];
+};
