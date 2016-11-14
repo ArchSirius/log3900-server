@@ -43,8 +43,9 @@ disconnect
 join:chatroom
 join:zone
 leave:zone
-sent:private:message
-send:message
+send:group:message
+send:private:message
+send:message [deprecated since 14-11-16]
 edit:nodes
 create:nodes
 delete:nodes
@@ -57,9 +58,9 @@ ping:position
 */
 connect
 init
+send:group:message
 send:private:message
-sent:private:message
-send:message
+send:message [deprecated since 14-11-16]
 user:join
 user:left
 joined:chatroom
@@ -255,19 +256,19 @@ Body       : room [String]
 Description: Leave a chatroom
 Body       : room [String]
 
+/*********************
+* send:group:message *
+*********************/
+Description: Send a group message to a room
+Body       : to   [String]
+           : text [String]
+
 /***********************
 * send:private:message *
 ***********************/
 Description: Send a private message to a user
 Body       : to   [String]
            : text [String]
-
-/***************
-* send:message *
-***************/
-Description: Send a message to the chat
-Body       : room    [String]
-           : message [String]
 
 /************
 * join:zone *
@@ -336,28 +337,23 @@ Description: Initialize an accepted Socket.io connection with user infos
 Body       : user [Object]
            : time [Integer]
 
+/*********************
+* send:group:message *
+*********************/
+Description: Send a group message to a room
+Body       : from [Object]
+           : room [String]
+           : text [String]
+           : time [Integer]
+
 /***********************
 * send:private:message *
 ***********************/
 Description: Send a private message to a user
 Body       : from [Object]
+           : to   [Object]
            : text [String]
            : time [Integer]
-
-/***********************
-* sent:private:message *
-***********************/
-Description: Return send:private:message feedback to caller
-Body       : success [Boolean]
-           : time    [Integer]
-
-/***************
-* send:message *
-***************/
-Description: Send a message 'text' from user 'user' to the chat
-Body       : userId [String]
-           : text   [String]
-           : time   [Integer]
 
 /************
 * user:join *

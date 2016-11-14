@@ -142,8 +142,9 @@ const findOrCreateChatRelation = function(sender, recipient, callback) {
  * @param {string} text - The message to send.
  */
 const broadcastMessage = function(senderId, senderSocket, room, text) {
-	socket.broadcast.to(room).emit('incoming:group:message', {
+	socket.broadcast.to(room).emit('send:group:message', {
 		from: usersCtrl.getUser(senderId),
+		room: room,
 		text: text,
 		time: new Date().getTime()
 	});
@@ -164,6 +165,7 @@ const emitMessage = function(senderId, recipientId, text) {
 		sockets.forEach(socket => {
 			socket.emit('send:private:message', {
 				from: usersCtrl.getUser(senderId),
+				to: usersCtrl.getUser(recipientId),
 				text: text,
 				time: new Date().getTime()
 			});

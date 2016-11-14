@@ -116,42 +116,58 @@ module.exports = function(socket) {
 	};
 
 	/**
-	 * Send a group message to a room/channel.
+	 * Send a group message to a room with event 'send:group:message'.
+	 * Sends the message back to caller on success.
 	 * @param {Object} data - The data received from the caller in JSON form.
-	 * @param {string} data.room - The room to broadcast in.
+	 * @param {string} data.to - The target user to receive the message.
 	 * @param {string} data.text - The message to send.
 	 */
 	const sendGroupMessage = function(data) {
-		const time = new Date().getTime();
-		//TODO
+		const room = data.room;
+		if (room) {
+			try {
+				msgCtrl.sendGroupMessage(userId, socket, room, data.text);
+				socket.emit('send:group:message', {
+					from: usersCtrl.getUser(senderId),
+					room: room,
+					text: text,
+					time: new Date().getTime()
+				});
+			}
+			catch (error) {
+				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+				console.log('SERVER ERROR in send:group:message', error);
+			}
+		}
 	};
 
 	/**
 	 * Send a private message to a user with event 'send:private:message'.
-	 * Sends feedback to caller with event 'sent:private:message'.
+	 * Sends the message back to caller on success.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.to - The target user to receive the message.
 	 * @param {string} data.text - The message to send.
 	 */
 	const sendPrivateMessage = function(data) {
-		const time = new Date().getTime();
+		const to = data.to;
 		try {
-			msgCtrl.sendPrivateMessage(userId, data.to, data.text);
-			socket.emit('sent:private:message', {
-				success: true,
-				time: time
+			msgCtrl.sendPrivateMessage(userId, to, data.text);
+			socket.emit('send:private:message', {
+				from: usersCtrl.getUser(userId),
+				to: to,
+				text: text,
+				time: new Date().getTime();
 			});
 		}
 		catch (error) {
-			socket.emit('sent:private:message', {
-				success: false,
-				time: time
-			});
+			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+			console.log('SERVER ERROR in send:private:message', error);
 		}
 	};
 
 	/**
 	 * Send message in socket room with event 'send:message'.
+	 * @deprecated since 14-11-16
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.room - The room to broadcast in.
 	 * @param {string} data.message - The message to send.
@@ -738,6 +754,7 @@ module.exports = function(socket) {
 		disconnect: disconnect,
 		joinChatroom: joinChatroom,
 		leaveChatroom: leaveChatroom,
+		sendGroupMessage: sendGroupMessage,
 		sendPrivateMessage: sendPrivateMessage,
 		sendMessage: sendMessage,
 		joinZone: joinZone,
