@@ -338,15 +338,15 @@ Body       : userId [String]
 * user:join *
 ************/
 Description: Tell a user has joined
-Body       : userId [String]
-           : time   [Integer]
+Body       : user [Object]
+           : time [Integer]
 
 /************
 * user:left *
 ************/
 Description: Tell a user has left
-Body       : userId [String]
-           : time   [Integer]
+Body       : user [Object]
+           : time [Integer]
 
 /******************
 * joined:chatroom *
@@ -388,8 +388,8 @@ Body       : success [Boolean]
 * leave:zone *
 *************/
 Description: Tell a user has left the zone
-Body       : userId [String]
-           : time
+Body       : user [Object]
+           : time [Integer]
 
 /************
 * left:zone *
@@ -403,9 +403,9 @@ Body       : success [Boolean]
 * edit:nodes *
 *************/
 Description: Send edit request to all listening clients
-Body       : userId [String]
-           : nodes  [Array]
-           : time   [Integer]
+Body       : user  [Object]
+           : nodes [Array]
+           : time  [Integer]
 
 /***************
 * edited:nodes *
@@ -421,9 +421,9 @@ Body       : success [Boolean]
 * create:nodes *
 ***************/
 Description: Send create request to all listening clients
-Body       : userId [String]
-           : nodes  [Array]
-           : time   [Integer]
+Body       : user  [Object]
+           : nodes [Array]
+           : time  [Integer]
 
 /****************
 * created:nodes *
@@ -439,9 +439,9 @@ Body       : success [Boolean]
 * delete:nodes *
 ***************/
 Description: Send delete request to all listening clients
-Body       : userId [String]
-           : nodes  [Array]
-           : time   [Integer]
+Body       : user  [Object]
+           : nodes [Array]
+           : time  [Integer]
 
 /****************
 * deleted:nodes *
@@ -457,9 +457,9 @@ Body       : success [Boolean]
 * lock:nodes *
 *************/
 Description: Send lock request to to all listening clients
-Body       : userId [String]
-           : nodes  [Array]
-           : time   [Integer]
+Body       : user  [Object]
+           : nodes [Array]
+           : time  [Integer]
 
 /***************
 * locked:nodes *
@@ -490,6 +490,6 @@ Body       : success [Boolean]
 * ping:position *
 ****************/
 Description: Transmit user ping to all listening clients
-Body       : userId   [String]
+Body       : user     [Object]
            : position [Object]
            : time     [Integer]
