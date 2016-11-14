@@ -28,7 +28,7 @@ module.exports = function(socket) {
 		usersCtrl.join(socket, user);
 		socket.emit('init', {
 			user: {
-				userId: userId,
+				user: usersCtrl.getUser(userId),
 				username: user.username
 			},
 			time: time
@@ -44,7 +44,7 @@ module.exports = function(socket) {
 		leaveZone();
 		chatrooms.forEach(room => {
 			socket.broadcast.to(room).emit('user:left', {
-				userId: userId,
+				user: usersCtrl.getUser(userId),
 				time: time
 			});
 		});
@@ -98,7 +98,7 @@ module.exports = function(socket) {
 			socket.leave(room);
 			chatrooms.splice(index, 1);
 			socket.broadcast.to(room).emit('user:left', {
-				userId: userId,
+				user: usersCtrl.getUser(userId),
 				time: time
 			});
 			socket.emit('left:chatroom', {
@@ -128,12 +128,14 @@ module.exports = function(socket) {
 		const room = data.room;
 		if (room) {
 			socket.broadcast.to(room).emit('send:message', {
-				userId: userId,
+				user: usersCtrl.getUser(userId),
+				room: room,
 				text: data.message,
 				time: time
 			});
 			socket.emit('send:message', {
-				userId: userId,
+				user: usersCtrl.getUser(userId),
+				room: room,
 				text: data.message,
 				time: time
 			});
@@ -204,7 +206,7 @@ module.exports = function(socket) {
 		if (zoneId) {
 			usersCtrl.unregisterZone(userId, zoneId);
 			socket.broadcast.to(zoneId).emit('leave:zone', {
-				userId: userId,
+				user: usersCtrl.getUser(userId),
 				time: time
 			});
 			socket.emit('left:zone', {
@@ -285,7 +287,7 @@ module.exports = function(socket) {
 				.then(() => {
 
 					socket.broadcast.to(zoneId).emit('edit:nodes', {
-						userId: userId,
+						user: usersCtrl.getUser(userId),
 						nodes: updatedNodes,
 						time: time
 					});
@@ -380,7 +382,7 @@ module.exports = function(socket) {
 						node.localId = userNodes[nIndex].localId;
 					});
 					socket.broadcast.to(zoneId).emit('create:nodes', {
-						userId: userId,
+						user: usersCtrl.getUser(userId),
 						nodes: nodes,
 						time: time
 					});
@@ -476,7 +478,7 @@ module.exports = function(socket) {
 				.then(() => {
 
 					socket.broadcast.to(zoneId).emit('delete:nodes', {
-						userId: userId,
+						user: usersCtrl.getUser(userId),
 						nodes: deletedNodes,
 						time: time
 					});
@@ -543,7 +545,7 @@ module.exports = function(socket) {
 				const newLock = lockCtrl.lockNodes(zone, userNodes, userId);
 				// Save and emit
 				socket.broadcast.to(zoneId).emit('lock:nodes', {
-					userId: userId,
+					user: usersCtrl.getUser(userId),
 					nodes: newLock,
 					time: time
 				});
@@ -647,7 +649,7 @@ module.exports = function(socket) {
 
 		if (zoneId) {
 			socket.to(zoneId).emit('ping:position', {
-				userId: userId,
+				user: usersCtrl.getUser(userId),
 				position: position,
 				time: time
 			});
