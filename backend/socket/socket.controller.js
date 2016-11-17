@@ -22,10 +22,7 @@ module.exports = function(socket) {
 		const time = new Date().getTime();
 		usersCtrl.join(socket, user);
 		socket.emit('init', {
-			user: {
-				user: usersCtrl.getUser(userId),
-				username: user.username
-			},
+			user: usersCtrl.getUser(userId),
 			time: time
 		});
 		try {
@@ -142,14 +139,14 @@ module.exports = function(socket) {
 	 * @param {string} data.text - The message to send.
 	 */
 	const sendGroupMessage = function(data) {
-		const room = data.room;
+		const room = data.to;
 		if (room) {
 			try {
 				msgCtrl.sendGroupMessage(userId, socket, room, data.text);
 				socket.emit('send:group:message', {
-					from: usersCtrl.getUser(senderId),
+					from: usersCtrl.getUser(userId),
 					room: room,
-					text: text,
+					text: data.text,
 					time: new Date().getTime()
 				});
 			}
@@ -223,34 +220,25 @@ module.exports = function(socket) {
 			usersCtrl.registerZone(userId, zoneId);
 			usersCtrl.joinChatroom(userId, zoneId);
 			socket.join(zoneId);
-			const messages = msgCtrl.fetchChannelHistory(zoneId).exec()
-			.then(channel => {
-				const messages = channel.messages
-				.sort((mA, mB) => {
-					return mA.createdAt - mB.createdAt;
-				});
-			})
-			.catch(error => {
-				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
-				console.log('SERVER ERROR in join:zone - fetchChannelHistory', error);
-			});
 			Zone.findById(zoneId, '-salt -password').exec()
 			.then(zone => {
 				if (zone) {
-					socket.broadcast.to(zoneId).emit('join:zone', {
-						user: usersCtrl.getUser(userId),
-						time: time
-					});
-					socket.emit('joined:zone', {
-						success: true,
-						zoneId: zoneId,
-						data: {
-							users: usersCtrl.getZoneUsers(zoneId),
-							messages: messages,
-							nodes: zone.nodes,
-							lockedNodes: lockCtrl.getZoneLocks(zoneId)
-						},
-						time: time
+					msgCtrl.fetchGroupMessages(zoneId, messages => {
+						socket.broadcast.to(zoneId).emit('join:zone', {
+							user: usersCtrl.getUser(userId),
+							time: time
+						});
+						socket.emit('joined:zone', {
+							success: true,
+							zoneId: zoneId,
+							data: {
+								users: usersCtrl.getZoneUsers(zoneId),
+								messages: messages,
+								nodes: zone.nodes,
+								lockedNodes: lockCtrl.getZoneLocks(zoneId)
+							},
+							time: time
+						});
 					});
 				}
 				else {

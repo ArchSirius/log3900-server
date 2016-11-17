@@ -12,6 +12,9 @@ const usersCtrl      = require('./socket.users.controller');
  * @param {string} text - The message to send.
  */
 exports.sendGroupMessage = function(senderId, senderSocket, room, text) {
+	if (!(senderId && senderSocket && room && text)) {
+		return;
+	}
 	findOrCreateChannel(room, false, senderId, channel => {
 		broadcastMessage(senderId, senderSocket, room, text);
 		archiveMessage(senderId, channel, text);
@@ -25,6 +28,9 @@ exports.sendGroupMessage = function(senderId, senderSocket, room, text) {
  * @param {string} text - The message to send.
  */
 exports.sendPrivateMessage = function(senderId, recipientId, text) {
+	if (!(senderId && recipientId && text)) {
+		return;
+	}
 	findOrCreateChatRelation(senderId, recipientId, chatRelation => {
 		const sentLive = emitMessage(senderId, recipientId, text);
 		if (sentLive) {
@@ -37,24 +43,41 @@ exports.sendPrivateMessage = function(senderId, recipientId, text) {
 };
 
 /**
- * Find and populate a channel's history.
+ * Fetch a channel's latest messages.
  * @param {string} name - The room to fetch.
+ * @param {callback} callback - The callback that handles the response.
  * @param {integer} [limit=100] - The maximum amount of messages to fetch by most recent.
- * @returns {Promise} A promise to return the populated channel.
  */
-exports.fetchChannelHistory = function(name, limit) {
-	return Channel
-	.findOne({ name: name })
-	.populate({
-		path: 'messages',
-		populate: {
-			path: 'createdBy',
-			select: 'username'
-		},
-		options: {
-			sort: { 'createdAt': -1 },
-			limit: limit || 100
+exports.fetchGroupMessages = function(name, callback, limit) {
+	if (!(name || callback)) {
+		return;
+	}
+	Channel.findOne({ name: name }).exec()
+	.then(channel => {
+		if (channel) {
+			Message
+			.find({ channel: channel })
+			.sort({ createdAt: 1 })
+			.limit(limit || 100)
+			.populate({
+				path: 'createdBy',
+				select: 'username'
+			})
+			.select('text createdBy createdAt')
+			.exec()
+			.then(messages => {
+				if (callback) {
+					callback(messages);
+				}
+			});
 		}
+		else if (callback) {
+			callback([]);
+		}
+	})
+	.catch(error => {
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		console.log('SERVER ERROR in socket.message.controller#fetchGroupMessages', error);
 	});
 };
 
@@ -164,7 +187,7 @@ const findOrCreateChatRelation = function(sender, recipient, callback) {
  * @param {string} text - The message to send.
  */
 const broadcastMessage = function(senderId, senderSocket, room, text) {
-	socket.broadcast.to(room).emit('send:group:message', {
+	senderSocket.broadcast.to(room).emit('send:group:message', {
 		from: usersCtrl.getUser(senderId),
 		room: room,
 		text: text,
@@ -211,6 +234,10 @@ const archiveMessage = function(sender, channel, text) {
 		channel: channel,
 		text: text,
 		createdBy: sender
+	})
+	.catch(error => {
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		console.log('SERVER ERROR in socket.message.controller#archiveMessage', error);
 	});
 };
 
@@ -230,5 +257,9 @@ const pendMessage = function(sender, recipient, channel, text) {
 			user: recipient,
 			message: message
 		});
+	})
+	.catch(error => {
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		console.log('SERVER ERROR in socket.message.controller#pendMessage', error);
 	});
 };

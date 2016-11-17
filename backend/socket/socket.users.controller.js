@@ -35,7 +35,7 @@ exports.getUser = function(userId) {
 	const user = users[String(userId)];
 	if (user) {
 		return {
-		userId: user._id,
+			userId: userId,
 			username: user.username
 		};
 	}

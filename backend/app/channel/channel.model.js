@@ -20,8 +20,6 @@ var ChannelSchema = new Schema({
     }],
     default: []
   }
-}, {
-  toJSON: { virtuals: true }
 });
 
 ChannelSchema.virtual('messages', {
