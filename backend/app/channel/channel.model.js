@@ -20,6 +20,14 @@ var ChannelSchema = new Schema({
     }],
     default: []
   }
+}, {
+  toJSON: { virtuals: true }
+});
+
+ChannelSchema.virtual('messages', {
+  ref: 'Message',
+  localField: '_id',
+  foreignField: 'channel'
 });
 
 module.exports = mongoose.model('Channel', ChannelSchema);

@@ -28,11 +28,17 @@ module.exports = function(socket) {
 			},
 			time: time
 		});
-		const pendingMessages = msgCtrl.fetchPendingMessages(userId, messages => {
-			messages.forEach(message => {
-				msgCtrl.emitMessage(message.createdBy._id, userId, message.text);
+		try {
+			const pendingMessages = msgCtrl.fetchPendingMessages(userId, messages => {
+				messages.forEach(message => {
+					msgCtrl.emitMessage(message.createdBy._id, userId, message.text);
+				});
 			});
-		});
+		}
+		catch (error) {
+			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+			console.log('SERVER ERROR in init - fetchPendingMessages', error);
+		}
 	};
 
 	/**
@@ -62,7 +68,19 @@ module.exports = function(socket) {
 		const room = data.room;
 		if (room && usersCtrl.joinChatroom(userId, room)) {
 			socket.join(room);
+			const messages = msgCtrl.fetchChannelHistory(room).exec()
+			.then(channel => {
+				const messages = channel.messages
+				.sort((mA, mB) => {
+					return mA.createdAt - mB.createdAt;
+				});
+			})
+			.catch(error => {
+				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+				console.log('SERVER ERROR in join:chatroom - fetchChannelHistory', error);
+			});
 			socket.broadcast.to(room).emit('user:join', {
+				room: room,
 				user: usersCtrl.getUser(userId),
 				time: time
 			});
@@ -70,6 +88,7 @@ module.exports = function(socket) {
 				success: true,
 				room: room,
 				users: usersCtrl.getChatroomUsers(room),
+				messages: messages,
 				time: time
 			});
 		}
@@ -204,6 +223,17 @@ module.exports = function(socket) {
 			usersCtrl.registerZone(userId, zoneId);
 			usersCtrl.joinChatroom(userId, zoneId);
 			socket.join(zoneId);
+			const messages = msgCtrl.fetchChannelHistory(zoneId).exec()
+			.then(channel => {
+				const messages = channel.messages
+				.sort((mA, mB) => {
+					return mA.createdAt - mB.createdAt;
+				});
+			})
+			.catch(error => {
+				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+				console.log('SERVER ERROR in join:zone - fetchChannelHistory', error);
+			});
 			Zone.findById(zoneId, '-salt -password').exec()
 			.then(zone => {
 				if (zone) {
@@ -216,6 +246,7 @@ module.exports = function(socket) {
 						zoneId: zoneId,
 						data: {
 							users: usersCtrl.getZoneUsers(zoneId),
+							messages: messages,
 							nodes: zone.nodes,
 							lockedNodes: lockCtrl.getZoneLocks(zoneId)
 						},

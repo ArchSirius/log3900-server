@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 14/11/16     *
+* Socket.io 17/11/16     *
 *************************/
 
 /*
@@ -358,8 +358,9 @@ Body       : from [Object]
 /************
 * user:join *
 ************/
-Description: Tell a user has joined
-Body       : user [Object]
+Description: Tell a user has joined a room
+Body       : room [String]
+           : user [Object]
            : time [Integer]
 
 /************
@@ -373,11 +374,12 @@ Body       : user [Object]
 * joined:chatroom *
 ******************/
 Description: Return join:chatroom feedback to caller
-Body       : success [Boolean]
-           : message [String] [optional]
-           : room    [String]
-           : users   [Array] [optional]
-           : time    [Integer]
+Body       : success  [Boolean]
+           : message  [String] [optional]
+           : room     [String]
+           : users    [Array] [optional]
+           : messages [Array] [optional]
+           : time     [Integer]
 
 /****************
 * left:chatroom *

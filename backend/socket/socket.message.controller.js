@@ -37,6 +37,28 @@ exports.sendPrivateMessage = function(senderId, recipientId, text) {
 };
 
 /**
+ * Find and populate a channel's history.
+ * @param {string} name - The room to fetch.
+ * @param {integer} [limit=100] - The maximum amount of messages to fetch by most recent.
+ * @returns {Promise} A promise to return the populated channel.
+ */
+exports.fetchChannelHistory = function(name, limit) {
+	return Channel
+	.findOne({ name: name })
+	.populate({
+		path: 'messages',
+		populate: {
+			path: 'createdBy',
+			select: 'username'
+		},
+		options: {
+			sort: { 'createdAt': -1 },
+			limit: limit || 100
+		}
+	});
+};
+
+/**
  * Fetch a user's pending messages.
  * @param {string|Object} user - The user or its unique _id.
  * @param {callback} [callback] - The callback that handles the response.
@@ -71,7 +93,7 @@ exports.fetchPendingMessages = function(user, callback) {
  * @returns {Object} A channel.
  */
 const findOrCreateChannel = function(name, private, users, callback) {
-	return Channel.find({ name: name }).exec()
+	return Channel.findOne({ name: name }).exec()
 	.then(channel => {
 		if (channel) {
 			if (callback) {
