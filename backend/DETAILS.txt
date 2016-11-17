@@ -372,7 +372,7 @@ Body       : success [Boolean]
 ************/
 Description: Tell a user (_id and username) has joined the zone
 Body       : user [Object]
-           : time
+           : time [Integer]
 
 /**************
 * joined:zone *
@@ -382,6 +382,7 @@ Body       : success [Boolean]
            : error   [Object] [optional]
            : message [String] [optional]
            : zoneId  [String]
+           : data    [Object]
            : time    [Integer]
 
 /*************
