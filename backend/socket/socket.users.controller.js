@@ -228,7 +228,7 @@ exports.getChatrooms = function(userId) {
 exports.getChatroomUsers = function(room) {
 	var res = [];
 	for (user in users) {
-		if (users[user].rooms.indexOf(room) !== -1) {
+		if (users[user].rooms && users[user].rooms.indexOf(room) !== -1) {
 			res.push({
 				_id: users[user]._id,
 				username: users[user].username
