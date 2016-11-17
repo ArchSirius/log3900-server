@@ -110,10 +110,12 @@ exports.create = function(req, res) {
   const userId = req.decoded._id;
   req.body.createdBy = userId;
   req.body.updatedBy = userId;
-  req.body.nodes.forEach(node => {
-    node.createdBy = userId;
-    node.updatedBy = userId;
-  });
+  if (req.body.nodes) {
+    req.body.nodes.forEach(node => {
+      node.createdBy = userId;
+      node.updatedBy = userId;
+    });
+  }
   return Zone.create(req.body)
     .then(zone => {
       zone.salt = undefined;
@@ -132,6 +134,8 @@ exports.update = function(req, res) {
   if (req.body.hasOwnProperty('_id')) {
     delete req.body._id;
   }
+  // Update user fields
+  const userId = req.decoded._id;
   req.body.updatedBy = req.decoded._id;
   req.body.nodes.forEach(node => {
     if (!node.createdBy) {
