@@ -175,7 +175,7 @@ module.exports = function(socket) {
 				from: usersCtrl.getUser(userId),
 				to: to,
 				text: text,
-				time: new Date().getTime();
+				time: new Date().getTime()
 			});
 		}
 		catch (error) {
