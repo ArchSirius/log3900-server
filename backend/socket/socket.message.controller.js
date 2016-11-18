@@ -2,7 +2,6 @@ const Channel        = require('../app/channel/channel.model');
 const ChatRelation   = require('../app/chatRelation/chatRelation.model');
 const Message        = require('../app/message/message.model');
 const PendingMessage = require('../app/pendingMessage/pendingMessage.model');
-const usersCtrl      = require('./socket.users.controller');
 
 /**
  * Send group message in socket room.
@@ -11,12 +10,12 @@ const usersCtrl      = require('./socket.users.controller');
  * @param {string} room - The room to broadcast in.
  * @param {string} text - The message to send.
  */
-exports.sendGroupMessage = function(senderId, senderSocket, room, text) {
+exports.sendGroupMessage = function(usersCtrl, senderId, senderSocket, room, text) {
 	if (!(senderId && senderSocket && room && text)) {
 		return;
 	}
 	findOrCreateChannel(room, false, senderId, channel => {
-		broadcastMessage(senderId, senderSocket, room, text);
+		broadcastMessage(usersCtrl, senderId, senderSocket, room, text);
 		archiveMessage(senderId, channel, text);
 	});
 };
@@ -27,12 +26,12 @@ exports.sendGroupMessage = function(senderId, senderSocket, room, text) {
  * @param {string} recipientId - The recipient's unique _id.
  * @param {string} text - The message to send.
  */
-exports.sendPrivateMessage = function(senderId, recipientId, text) {
+exports.sendPrivateMessage = function(usersCtrl, senderId, recipientId, text) {
 	if (!(senderId && recipientId && text)) {
 		return;
 	}
 	findOrCreateChatRelation(senderId, recipientId, chatRelation => {
-		const sentLive = emitMessage(senderId, recipientId, text);
+		const sentLive = emitMessage(usersCtrl, senderId, recipientId, text);
 		if (sentLive) {
 			archiveMessage(senderId, chatRelation.channel, text);
 		}
@@ -186,7 +185,7 @@ const findOrCreateChatRelation = function(sender, recipient, callback) {
  * @param {string} room - The room to broadcast in.
  * @param {string} text - The message to send.
  */
-const broadcastMessage = function(senderId, senderSocket, room, text) {
+const broadcastMessage = function(usersCtrl, senderId, senderSocket, room, text) {
 	senderSocket.broadcast.to(room).emit('send:group:message', {
 		from: usersCtrl.getUser(senderId),
 		room: room,
@@ -203,7 +202,7 @@ const broadcastMessage = function(senderId, senderSocket, room, text) {
  * @param {string} text - The message to send.
  * @returns {boolean} true if the message was sent live; false if user was offline.
  */
-const emitMessage = function(senderId, recipientId, text) {
+const emitMessage = function(usersCtrl, senderId, recipientId, text) {
 	const sockets = usersCtrl.getSockets(recipientId);
 	if (sockets) {
 		const sent = false;
