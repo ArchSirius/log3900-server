@@ -1,4 +1,6 @@
-const User = require('../app/user/user.model');
+const User      = require('../app/user/user.model');
+const usersCtrl = require('./socket.users.controller');
+const lockCtrl  = require('./socket.lock.controller');
 
 // export function for listening to the socket
 module.exports = function (socket) {
@@ -10,7 +12,7 @@ module.exports = function (socket) {
 	.then(user => {
 		if (user) {
 
-			controller.onInit(user);
+			controller.onInit(usersCtrl, user);
 
 		} // If user does not exist, abort
 	})
@@ -19,19 +21,19 @@ module.exports = function (socket) {
 		console.log('SERVER ERROR in constructor', error);
 	});
 
-	socket.on('disconnect', controller.disconnect);
-	socket.on('join:chatroom', controller.joinChatroom);
-	socket.on('leave:chatroom', controller.leaveChatroom);
-	socket.on('send:group:message', controller.sendGroupMessage);
-	socket.on('send:private:message', controller.sendPrivateMessage);
-	socket.on('send:message', controller.sendMessage);
+	socket.on('disconnect', controller.disconnect(usersCtrl));
+	socket.on('join:chatroom', controller.joinChatroom(usersCtrl));
+	socket.on('leave:chatroom', controller.leaveChatroom(usersCtrl));
+	socket.on('send:group:message', controller.sendGroupMessage(usersCtrl));
+	socket.on('send:private:message', controller.sendPrivateMessage(usersCtrl));
+	socket.on('send:message', controller.sendMessage(usersCtrl));
 
-	socket.on('join:zone', controller.joinZone);
-	socket.on('leave:zone', controller.leaveZone);
-	socket.on('edit:nodes', controller.editNodes);
-	socket.on('create:nodes', controller.createNodes);
-	socket.on('delete:nodes', controller.deleteNodes);
-	socket.on('lock:nodes', controller.lockNodes);
-	socket.on('unlock:nodes', controller.unlockNodes);
-	socket.on('ping:position', controller.pingPosition);
+	socket.on('join:zone', controller.joinZone(usersCtrl, lockCtrl));
+	socket.on('leave:zone', controller.leaveZone(usersCtrl));
+	socket.on('edit:nodes', controller.editNodes(usersCtrl, lockCtrl));
+	socket.on('create:nodes', controller.createNodes(usersCtrl));
+	socket.on('delete:nodes', controller.deleteNodes(usersCtrl, lockCtrl));
+	socket.on('lock:nodes', controller.lockNodes(usersCtrl, lockCtrl));
+	socket.on('unlock:nodes', controller.unlockNodes(usersCtrl, lockCtrl));
+	socket.on('ping:position', controller.pingPosition(usersCtrl));
 };
