@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 07/11/16     *
+* Socket.io 17/11/16     *
 *************************/
 
 /*
@@ -43,7 +43,9 @@ disconnect
 join:chatroom
 join:zone
 leave:zone
-send:message
+send:group:message
+send:private:message
+send:message [deprecated since 14-11-16]
 edit:nodes
 create:nodes
 delete:nodes
@@ -56,7 +58,9 @@ ping:position
 */
 connect
 init
-send:message
+send:group:message
+send:private:message
+send:message [deprecated since 14-11-16]
 user:join
 user:left
 joined:chatroom
@@ -252,12 +256,19 @@ Body       : room [String]
 Description: Leave a chatroom
 Body       : room [String]
 
-/***************
-* send:message *
-***************/
-Description: Send a message to the chat
-Body       : room    [String]
-           : message [String]
+/*********************
+* send:group:message *
+*********************/
+Description: Send a group message to a room
+Body       : to   [String]
+           : text [String]
+
+/***********************
+* send:private:message *
+***********************/
+Description: Send a private message to a user
+Body       : to   [String]
+           : text [String]
 
 /************
 * join:zone *
@@ -326,19 +337,30 @@ Description: Initialize an accepted Socket.io connection with user infos
 Body       : user [Object]
            : time [Integer]
 
-/***************
-* send:message *
-***************/
-Description: Send a message 'text' from user 'user' to the chat
-Body       : userId [String]
-           : text   [String]
-           : time   [Integer]
+/*********************
+* send:group:message *
+*********************/
+Description: Send a group message to a room
+Body       : from [Object]
+           : room [String]
+           : text [String]
+           : time [Integer]
+
+/***********************
+* send:private:message *
+***********************/
+Description: Send a private message to a user
+Body       : from [Object]
+           : to   [Object]
+           : text [String]
+           : time [Integer]
 
 /************
 * user:join *
 ************/
-Description: Tell a user has joined
-Body       : user [Object]
+Description: Tell a user has joined a room
+Body       : room [String]
+           : user [Object]
            : time [Integer]
 
 /************
@@ -352,11 +374,12 @@ Body       : user [Object]
 * joined:chatroom *
 ******************/
 Description: Return join:chatroom feedback to caller
-Body       : success [Boolean]
-           : message [String] [optional]
-           : room    [String]
-           : users   [Array] [optional]
-           : time    [Integer]
+Body       : success  [Boolean]
+           : message  [String] [optional]
+           : room     [String]
+           : users    [Array] [optional]
+           : messages [Array] [optional]
+           : time     [Integer]
 
 /****************
 * left:chatroom *

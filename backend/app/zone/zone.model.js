@@ -3,8 +3,9 @@
 var crypto       = require('crypto');
 var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
+var Schema       = mongoose.Schema;
 
-var NodeSchema = new mongoose.Schema({
+var NodeSchema = new Schema({
   type: {
     type: String,
     enum: [ 'cylindre', 'depart', 'ligne', 'mur', 'robot', 'segment', 'table' ],
@@ -43,25 +44,29 @@ var NodeSchema = new mongoose.Schema({
     }
   },
   parent: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.ObjectId,
     default: null
   },
-  createdBy: mongoose.Schema.Types.ObjectId,
-  updatedBy: mongoose.Schema.Types.ObjectId
-}, {
-  timestamps: {
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+  createdBy: {
+    type: Schema.ObjectId,
+    ref: 'User'
+  },
+  updatedBy: {
+    type: Schema.ObjectId,
+    ref: 'User'
   }
+}, {
+  timestamps: true
 });
 
-var ZoneSchema = new mongoose.Schema({
+var ZoneSchema = new Schema({
   name: {
     type: String,
     required: true
   },
   private: {
-    type: Boolean, default: false
+    type: Boolean,
+    default: false
   },
   password: String,
   salt: String,
@@ -74,13 +79,16 @@ var ZoneSchema = new mongoose.Schema({
     type: [ NodeSchema ],
     default: []
   },
-  createdBy: mongoose.Schema.Types.ObjectId,
-  updatedBy: mongoose.Schema.Types.ObjectId
-}, {
-  timestamps: {
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+  createdBy: {
+    type: Schema.ObjectId,
+    ref: 'User'
+  },
+  updatedBy: {
+    type: Schema.ObjectId,
+    ref: 'User'
   }
+}, {
+  timestamps: true
 });
 
 /**

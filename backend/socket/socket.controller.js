@@ -2,6 +2,7 @@ const Zone      = require('../app/zone/zone.model');
 const _         = require('lodash');
 const usersCtrl = require('./socket.users.controller');
 const lockCtrl  = require('./socket.lock.controller');
+const msgCtrl   = require('./socket.message.controller');
 
 module.exports = function(socket) {
 
@@ -21,12 +22,20 @@ module.exports = function(socket) {
 		const time = new Date().getTime();
 		usersCtrl.join(socket, user);
 		socket.emit('init', {
-			user: {
-				user: usersCtrl.getUser(userId),
-				username: user.username
-			},
+			user: usersCtrl.getUser(userId),
 			time: time
 		});
+		try {
+			const pendingMessages = msgCtrl.fetchPendingMessages(userId, messages => {
+				messages.forEach(message => {
+					msgCtrl.emitMessage(message.createdBy._id, userId, message.text);
+				});
+			});
+		}
+		catch (error) {
+			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+			console.log('SERVER ERROR in init - fetchPendingMessages', error);
+		}
 	};
 
 	/**
@@ -56,7 +65,19 @@ module.exports = function(socket) {
 		const room = data.room;
 		if (room && usersCtrl.joinChatroom(userId, room)) {
 			socket.join(room);
+			const messages = msgCtrl.fetchChannelHistory(room).exec()
+			.then(channel => {
+				const messages = channel.messages
+				.sort((mA, mB) => {
+					return mA.createdAt - mB.createdAt;
+				});
+			})
+			.catch(error => {
+				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+				console.log('SERVER ERROR in join:chatroom - fetchChannelHistory', error);
+			});
 			socket.broadcast.to(room).emit('user:join', {
+				room: room,
 				user: usersCtrl.getUser(userId),
 				time: time
 			});
@@ -64,6 +85,7 @@ module.exports = function(socket) {
 				success: true,
 				room: room,
 				users: usersCtrl.getChatroomUsers(room),
+				messages: messages,
 				time: time
 			});
 		}
@@ -110,7 +132,58 @@ module.exports = function(socket) {
 	};
 
 	/**
+	 * Send a group message to a room with event 'send:group:message'.
+	 * Sends the message back to caller on success.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.to - The target user to receive the message.
+	 * @param {string} data.text - The message to send.
+	 */
+	const sendGroupMessage = function(data) {
+		const room = data.to;
+		if (room) {
+			try {
+				msgCtrl.sendGroupMessage(userId, socket, room, data.text);
+				socket.emit('send:group:message', {
+					from: usersCtrl.getUser(userId),
+					room: room,
+					text: data.text,
+					time: new Date().getTime()
+				});
+			}
+			catch (error) {
+				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+				console.log('SERVER ERROR in send:group:message', error);
+			}
+		}
+	};
+
+	/**
+	 * Send a private message to a user with event 'send:private:message'.
+	 * Sends the message back to caller on success.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.to - The target user to receive the message.
+	 * @param {string} data.text - The message to send.
+	 */
+	const sendPrivateMessage = function(data) {
+		const to = data.to;
+		try {
+			msgCtrl.sendPrivateMessage(userId, to, data.text);
+			socket.emit('send:private:message', {
+				from: usersCtrl.getUser(userId),
+				to: to,
+				text: text,
+				time: new Date().getTime()
+			});
+		}
+		catch (error) {
+			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+			console.log('SERVER ERROR in send:private:message', error);
+		}
+	};
+
+	/**
 	 * Send message in socket room with event 'send:message'.
+	 * @deprecated since 14-11-16
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.room - The room to broadcast in.
 	 * @param {string} data.message - The message to send.
@@ -150,19 +223,22 @@ module.exports = function(socket) {
 			Zone.findById(zoneId, '-salt -password').exec()
 			.then(zone => {
 				if (zone) {
-					socket.broadcast.to(zoneId).emit('join:zone', {
-						user: usersCtrl.getUser(userId),
-						time: time
-					});
-					socket.emit('joined:zone', {
-						success: true,
-						zoneId: zoneId,
-						data: {
-							users: usersCtrl.getZoneUsers(zoneId),
-							nodes: zone.nodes,
-							lockedNodes: lockCtrl.getZoneLocks(zoneId)
-						},
-						time: time
+					msgCtrl.fetchGroupMessages(zoneId, messages => {
+						socket.broadcast.to(zoneId).emit('join:zone', {
+							user: usersCtrl.getUser(userId),
+							time: time
+						});
+						socket.emit('joined:zone', {
+							success: true,
+							zoneId: zoneId,
+							data: {
+								users: usersCtrl.getZoneUsers(zoneId),
+								messages: messages,
+								nodes: zone.nodes,
+								lockedNodes: lockCtrl.getZoneLocks(zoneId)
+							},
+							time: time
+						});
 					});
 				}
 				else {
@@ -697,6 +773,8 @@ module.exports = function(socket) {
 		disconnect: disconnect,
 		joinChatroom: joinChatroom,
 		leaveChatroom: leaveChatroom,
+		sendGroupMessage: sendGroupMessage,
+		sendPrivateMessage: sendPrivateMessage,
 		sendMessage: sendMessage,
 		joinZone: joinZone,
 		leaveZone: leaveZone,
