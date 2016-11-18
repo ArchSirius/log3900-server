@@ -64,7 +64,7 @@ exports.getUsers = function() {
 	var res = [];
 	for (user in users) {
 		res.push({
-			_id: users[user]._id,
+			_id: user,
 			username: users[user].username
 		});
 	}
@@ -81,7 +81,7 @@ exports.getZoneUsers = function(zoneId) {
 	for (user in users) {
 		if (users[user].zoneId === zoneId) {
 			res.push({
-				_id: users[user]._id,
+				_id: user,
 				username: users[user].username
 			});
 		}

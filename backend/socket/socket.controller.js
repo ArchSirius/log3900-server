@@ -26,10 +26,12 @@ module.exports = function(socket) {
 			time: time
 		});
 		try {
-			const pendingMessages = msgCtrl.fetchPendingMessages(userId, messages => {
-				messages.forEach(message => {
-					msgCtrl.emitMessage(message.createdBy._id, userId, message.text);
-				});
+			msgCtrl.fetchPendingMessages(userId, pendingMessages => {
+				if (pendingMessages && pendingMessages.messages) {
+					pendingMessages.messages.forEach(message => {
+						msgCtrl.emitMessage(message.createdBy._id, userId, message.text);
+					});
+				}
 			});
 		}
 		catch (error) {
@@ -65,28 +67,19 @@ module.exports = function(socket) {
 		const room = data.room;
 		if (room && usersCtrl.joinChatroom(userId, room)) {
 			socket.join(room);
-			const messages = msgCtrl.fetchChannelHistory(room).exec()
-			.then(channel => {
-				const messages = channel.messages
-				.sort((mA, mB) => {
-					return mA.createdAt - mB.createdAt;
+			msgCtrl.fetchGroupMessages(room, messages => {
+				socket.broadcast.to(room).emit('user:join', {
+					room: room,
+					user: usersCtrl.getUser(userId),
+					time: time
 				});
-			})
-			.catch(error => {
-				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
-				console.log('SERVER ERROR in join:chatroom - fetchChannelHistory', error);
-			});
-			socket.broadcast.to(room).emit('user:join', {
-				room: room,
-				user: usersCtrl.getUser(userId),
-				time: time
-			});
-			socket.emit('joined:chatroom', {
-				success: true,
-				room: room,
-				users: usersCtrl.getChatroomUsers(room),
-				messages: messages,
-				time: time
+				socket.emit('joined:chatroom', {
+					success: true,
+					room: room,
+					users: usersCtrl.getChatroomUsers(room),
+					messages: messages,
+					time: time
+				});
 			});
 		}
 		else {
