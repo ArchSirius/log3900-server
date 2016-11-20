@@ -154,6 +154,65 @@ export function updateUserInfos(req, res) {
 }
 
 /**
+ * Add a new friend
+ * restriction: authenticated
+ */
+exports.addFriend = function(req, res) {
+  const friendId = req.body.userId;
+  var update;
+  return User.findById(req.decoded._id, '-salt -password').exec()
+    .then(handleEntityNotFound(res))
+    .then(user => {
+      update = user;
+      return User.findById(friendId, '-salt -password').exec()
+      .then(handleEntityNotFound(res))
+      .then(friend => {
+        if (!update.friends) { // for old model
+          update.friends = [];
+        }
+        if (update.friends.indexOf(friend) === -1) {
+          update.friends.push(friend);
+        }
+        return user;
+      });
+    })
+    .then(saveUpdates(update))
+    .then(respondWithResult(res))
+    .catch(validationError(res));
+}
+
+/**
+ * Remove a friend
+ * restriction: authenticated
+ */
+exports.removeFriend = function(req, res) {
+  const friendId = req.body.userId;
+  var update;
+  return User.findById(req.decoded._id, '-salt -password').exec()
+    .then(handleEntityNotFound(res))
+    .then(user => {
+      update = user;
+        if (!update.friends) { // for old model
+          return user;
+        }
+        var index = -1;
+        for (var i = 0; i < update.friends.length; ++i) {
+          if (String(update.friends[i]) === friendId) {
+            index = i;
+            break;
+          }
+        }
+        if (index !== -1) {
+          update.friends.splice(index, 1);
+        }
+        return user;
+    })
+    .then(saveUpdates(update))
+    .then(respondWithResult(res))
+    .catch(validationError(res));
+}
+
+/**
  * Authentication callback
  */
 export function authCallback(req, res) {

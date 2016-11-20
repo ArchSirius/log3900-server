@@ -12,5 +12,7 @@ router.put('/:id/password', auth.isAuthenticated, auth.isSelf, controller.change
 router.put('/:id', auth.isAuthenticated, auth.isSelf, controller.update);
 router.get('/:id', auth.isAuthenticated, controller.show);
 router.post('/', controller.create);
+router.post('/friend/add', auth.isAuthenticated, controller.addFriend);
+router.delete('/friend/remove', auth.isAuthenticated, controller.removeFriend);
 
 module.exports = router;
