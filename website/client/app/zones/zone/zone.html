@@ -1,7 +1,8 @@
 <div class="container">
 
   <div class="page-header">
-    <h1>{{ zone.name }} <small>Crée par {{ zone.createdBy.username }} le {{ zone.createdAt | date }}</small></h1>
+    <h1>{{ zone.name }} <small>Crée par <a href="#" ng-click="gotoUser(zone.createdBy)">{{ zone.createdBy.username }}</a> le {{ zone.createdAt | date }}
+     | dernière modification par <a href="#" ng-click="gotoUser(zone.updatedBy)">{{ zone.updatedBy.username }}</a> le {{ zone.updatedAt | date }}</small></h1>
   </div>
 
   <div class="row">

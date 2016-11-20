@@ -14,6 +14,10 @@ export class ZoneComponent {
 
     $scope.zone = {};
     $scope.id = '';
+
+    $scope.gotoUser = function(user) {
+      $state.go('user', { 'username' : user.username });
+    };
   }
 
   $onInit() {

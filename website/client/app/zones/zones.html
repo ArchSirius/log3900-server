@@ -34,14 +34,14 @@
             {{ zone.name }}
           </td>
           <td>
-            {{ zone.creator.username }}
+            {{ zone.createdBy.username }}
           </td>
           <td>
             {{ zone.createdAt | date }}
           </td>
           <td>
             {{ zone.updatedAt | date }}
-            <span ng-if="zone.updator"><br/>par {{ zone.updator.username }}</span>
+            <span ng-if="zone.updatedBy"><br/>par {{ zone.updatedBy.username }}</span>
           </td>
           <td>
             {{ zone.private ? "Privée" : "" }}

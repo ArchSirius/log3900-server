@@ -65,14 +65,14 @@ function handleError(res, statusCode) {
 
 // Gets a list of Zones
 export function index(req, res) {
-  return Zone.find().exec()
+  return Zone.find().populate('createdBy updatedBy', 'username').exec()
     .then(respondWithResult(res))
     .catch(handleError(res));
 }
 
 // Gets a single Zone from the DB
 export function show(req, res) {
-  return Zone.findById(req.params.id).exec()
+  return Zone.findById(req.params.id).populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(respondWithResult(res))
     .catch(handleError(res));
