@@ -2,9 +2,11 @@ node_modules
 public
 .tmp
 .idea
+bower_components
 client/bower_components
 client/index.html
 dist
 /server/config/local.env.js
 npm-debug.log
 coverage
+logs

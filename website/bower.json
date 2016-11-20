@@ -1,0 +1,22 @@
+{
+  "name": "log3900",
+  "description": "",
+  "main": "server/index.js",
+  "authors": [
+    "Samuel Rondeau <samuel.rondeau@polymtl.ca>"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "qrcode.js": "qrcode#^1.0.2",
+    "angular-qr": "^0.2.0"
+  }
+}
