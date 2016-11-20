@@ -13,13 +13,20 @@ export class ZoneComponent {
     this.apiCall = apiCall;
 
     $scope.zone = {};
+    $scope.id = '';
+
+    $scope.gotoUser = function(user) {
+      $state.go('user', { 'username' : user.username });
+    };
   }
 
   $onInit() {
-    const id = this.$state.params.id;
-    this.apiCall.getZone(id)
+    this.$scope.id = this.$state.params.id;
+    this.apiCall.getZone(this.$scope.id)
     .then(result => {
-      console.log(result);  // TEST
+      if (!result.thumbnail) {
+        result.thumbnail = 'http://www.polymtl.ca/sc/img/logoType/logoPOLY/poly_bloc_rgb.png';
+      }
       this.$scope.zone = result;
     }, error => {
       console.log('error', error);

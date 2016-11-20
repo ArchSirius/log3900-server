@@ -25,28 +25,8 @@ export class ZonesComponent {
     this.apiCall.getZones()
     .then(result => {
       this.$scope.zones = result;
-      this.lookupUser();
     }, error => {
       console.log('error', error);
-    });
-  }
-
-  lookupUser() {
-    this.$scope.zones.forEach(zone => {
-      this.apiCall.getUser(zone.createdBy)
-      .then(user => {
-        zone.creator = user;
-      }, error => {
-        console.log('error', error);
-      });
-      if (zone.updatedBy) {
-        this.apiCall.getUser(zone.updatedBy)
-        .then(user => {
-          zone.updator = user;
-        }, error => {
-          console.log('error', error);
-        });
-      }
     });
   }
 }
