@@ -94,8 +94,16 @@ exports.unlockNodes = function(zone, nodes, userId) {
  * @returns {Object[]} The array of locked nodes.
  */
 exports.getZoneLocks = function(zoneId) {
-	if (!lockedNodes[zoneId]) {
+	var res = [];
+	const data = lockedNodes[zoneId];
+	if (!data) {
 		return [];
 	}
-	return lockedNodes[zoneId];
+	for (node in data) {
+		res.push({
+			nodeId: node,
+			userId: data[node]
+		});
+	}
+	return res;
 };
