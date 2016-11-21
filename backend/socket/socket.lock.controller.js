@@ -73,7 +73,7 @@ exports.lockNodes = function(zone, nodes, userId) {
  */
 exports.unlockNodes = function(zone, nodes, userId) {
 	if (!lockedNodes[zone._id]) {
-		return;
+		return [];
 	}
 	var newUnlock = [];
 	nodes.forEach(node => {

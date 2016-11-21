@@ -157,7 +157,10 @@ const findOrCreateChatRelation = function(sender, recipient, callback) {
 			}
 			return chatRelation;
 		}
+		const s1 = typeof sender === 'object' ? sender._id : sender;
+		const s2 = typeof recipient === 'object' ? recipient._id : recipient;
 		return Channel.create({
+			name: s1 + '-' + s2,
 			private: true,
 			users: [sender, recipient]
 		})
@@ -203,9 +206,9 @@ const broadcastMessage = function(usersCtrl, senderId, senderSocket, room, text)
  * @returns {boolean} true if the message was sent live; false if user was offline.
  */
 const emitMessage = function(usersCtrl, senderId, recipientId, text) {
-	const sockets = usersCtrl.getSockets(recipientId);
+	const sockets = usersCtrl.getChatSockets(recipientId);
 	if (sockets) {
-		const sent = false;
+		var sent = false;
 		sockets.forEach(socket => {
 			socket.emit('send:private:message', {
 				from: usersCtrl.getUser(senderId),

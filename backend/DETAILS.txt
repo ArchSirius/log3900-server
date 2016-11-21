@@ -31,7 +31,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 17/11/16     *
+* Socket.io 21/11/16     *
 *************************/
 
 /*
@@ -39,6 +39,7 @@ POST   /auth/login
 */
 connect
 authenticate
+init:chat
 disconnect
 join:chatroom
 join:zone
@@ -237,6 +238,12 @@ Body       : --
 ***************/
 Description: Authenticate user to grant socket init
 Body       : token [String]
+
+/************
+* init:chat *
+************/
+Description: Enable or disable chat functions (enable by default)
+Body       : value [Bolean] [optional]
 
 /*************
 * disconnect *

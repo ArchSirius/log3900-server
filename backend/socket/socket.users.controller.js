@@ -15,13 +15,13 @@ var users = {};
 exports.join = function(socket, user) {
 	if (users[String(user._id)]) {
 		if (!this.getSocket(user._id, socket.id)) {
-			users[String(user._id)].sockets.push(socket);
+			users[String(user._id)].sockets.push({ socket: socket, chat: false });
 		}
 		return false;
 	}
 	users[String(user._id)] = {
 		username: user.username,
-		sockets: [ socket ]
+		sockets: [{ socket: socket, chat: false }]
 	};
 	return true;
 };
@@ -111,7 +111,7 @@ exports.getNames = function() {
 exports.leave = function(socket, userId) {
 	if (users[String(userId)]) {
 		for (var i = 0; i < users[String(userId)].sockets.length; ++i) {
-			if (users[String(userId)].sockets[i].id === socket.id) {
+			if (users[String(userId)].sockets[i].socket.id === socket.id) {
 				users[String(userId)].sockets.splice(i, 1);
 			}
 		}
@@ -153,7 +153,30 @@ exports.unregisterZone = function(userId, zoneId) {
 exports.getSockets = function(userId) {
 	const user = users[String(userId)];
 	if (user) {
-		return user.sockets;
+		var res = [];
+		user.sockets.forEach(socket => {
+			res.push(socket.socket);
+		});
+		return res;
+	}
+	return undefined;
+};
+
+/**
+ * Return all user sockets with chat enabled.
+ * @param {string} userId - The unique _id of a user.
+ * @returns {Object[]} User sockets.
+ */
+exports.getChatSockets = function(userId) {
+	const user = users[String(userId)];
+	if (user) {
+		var res = [];
+		user.sockets.forEach(socket => {
+			if (socket.chat) {
+				res.push(socket.socket);
+			}
+		});
+		return res;
 	}
 	return undefined;
 };
@@ -241,4 +264,21 @@ exports.getChatroomUsers = function(room) {
 		}
 	}
 	return res;
+};
+
+/**
+ * Enable or disable chat functions for a socket.
+ * @param {Object} socket - The user's socket.
+ * @param {String} userId - The unique _id of a user.
+ * @param {boolean} value - The value to set.
+ */
+exports.setChat = function(socket, userId, value) {
+	if (users[String(userId)]) {
+		for (var i = 0; i < users[String(userId)].sockets.length; ++i) {
+			if (users[String(userId)].sockets[i].socket.id === socket.id) {
+				users[String(userId)].sockets[i].chat = value;
+				break;
+			}
+		}
+	}
 };
