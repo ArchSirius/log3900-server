@@ -39,6 +39,21 @@ module.exports = function(socket) {
 	};
 
 	/**
+	 * Enable or disable chat functions for a socket.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {boolean} [data.value=true] The value to set.
+	 */
+	const initChat = function(usersCtrl) {
+		return function (data) {
+			var value = true;
+			if (data && data.hasOwnProperty('value')) {
+				value = data.value;
+			}
+			usersCtrl.setChat(socket, userId, value);
+		};
+	};
+
+	/**
 	 * Disconnect a user and send notifications in socket rooms with events 'user:left' and 'leave:zone'.
 	 */
 	const disconnect = function(usersCtrl) {
@@ -166,11 +181,12 @@ module.exports = function(socket) {
 	const sendPrivateMessage = function(usersCtrl) {
 		return function (data) {
 			const to = data.to;
+			const text = data.text;
 			try {
-				msgCtrl.sendPrivateMessage(usersCtrl, userId, to, data.text);
+				msgCtrl.sendPrivateMessage(usersCtrl, userId, to, text);
 				socket.emit('send:private:message', {
 					from: usersCtrl.getUser(userId),
-					to: to,
+					to: usersCtrl.getUser(to),
 					text: text,
 					time: new Date().getTime()
 				});
@@ -789,6 +805,7 @@ module.exports = function(socket) {
 
 	return {
 		onInit: onInit,
+		initChat: initChat,
 		disconnect: disconnect,
 		joinChatroom: joinChatroom,
 		leaveChatroom: leaveChatroom,

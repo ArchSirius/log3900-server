@@ -21,6 +21,7 @@ module.exports = function (socket) {
 		console.log('SERVER ERROR in constructor', error);
 	});
 
+	socket.on('init:chat', controller.initChat(usersCtrl));
 	socket.on('disconnect', controller.disconnect(usersCtrl));
 	socket.on('join:chatroom', controller.joinChatroom(usersCtrl));
 	socket.on('leave:chatroom', controller.leaveChatroom(usersCtrl));
