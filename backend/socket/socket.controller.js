@@ -59,15 +59,17 @@ module.exports = function(socket) {
 	const disconnect = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
-			const isDeleted = usersCtrl.leave(socket, userId); // TODO use isDeleted to manage disconnects
-			leaveZone(usersCtrl)();
-			const chatrooms = usersCtrl.getChatrooms(userId);
-			chatrooms.forEach(room => {
-				socket.broadcast.to(room).emit('user:left', {
-					user: usersCtrl.getUser(userId),
-					time: time
+			const isDeleted = usersCtrl.leave(socket, userId);
+			if (isDeleted) {
+				leaveZone(usersCtrl)();
+				const chatrooms = usersCtrl.getChatrooms(userId);
+				chatrooms.forEach(room => {
+					socket.broadcast.to(room).emit('user:left', {
+						user: usersCtrl.getUser(userId),
+						time: time
+					});
 				});
-			});
+			}
 		};
 	};
 
@@ -153,13 +155,14 @@ module.exports = function(socket) {
 	const sendGroupMessage = function(usersCtrl) {
 		return function (data) {
 			const room = data.to;
+			const text = data.text;
 			if (room) {
 				try {
-					msgCtrl.sendGroupMessage(usersCtrl, userId, socket, room, data.text);
+					msgCtrl.sendGroupMessage(usersCtrl, userId, socket, room, text);
 					socket.emit('send:group:message', {
 						from: usersCtrl.getUser(userId),
 						room: room,
-						text: data.text,
+						text: text,
 						time: new Date().getTime()
 					});
 				}
@@ -237,29 +240,26 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = data.zoneId;
 			if (zoneId) {
-				usersCtrl.registerZone(userId, zoneId);
-				usersCtrl.joinChatroom(userId, zoneId);
-				socket.join(zoneId);
 				Zone.findById(zoneId, '-salt -password').exec()
 				.then(zone => {
 					if (zone) {
-						msgCtrl.fetchGroupMessages(zoneId, messages => {
-							socket.broadcast.to(zoneId).emit('join:zone', {
-								user: usersCtrl.getUser(userId),
-								time: time
-							});
-							socket.emit('joined:zone', {
-								success: true,
-								zoneId: zoneId,
-								data: {
-									users: usersCtrl.getZoneUsers(zoneId),
-									messages: messages,
-									nodes: zone.nodes,
-									lockedNodes: lockCtrl.getZoneLocks(zoneId)
-								},
-								time: time
-							});
+						usersCtrl.registerZone(userId, zoneId);
+						socket.join(zoneId);
+						socket.broadcast.to(zoneId).emit('join:zone', {
+							user: usersCtrl.getUser(userId),
+							time: time
 						});
+						socket.emit('joined:zone', {
+							success: true,
+							zoneId: zoneId,
+							data: {
+								users: usersCtrl.getZoneUsers(zoneId),
+								nodes: zone.nodes,
+								lockedNodes: lockCtrl.getZoneLocks(zoneId)
+							},
+							time: time
+						});
+						joinChatroom(usersCtrl)({ room: zoneId });
 					}
 					else {
 						socket.emit('joined:zone', {

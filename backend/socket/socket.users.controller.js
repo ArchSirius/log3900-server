@@ -258,7 +258,7 @@ exports.getChatroomUsers = function(room) {
 	for (user in users) {
 		if (users[user].rooms && users[user].rooms.indexOf(room) !== -1) {
 			res.push({
-				_id: users[user]._id,
+				_id: user,
 				username: users[user].username
 			});
 		}
