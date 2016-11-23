@@ -57,17 +57,17 @@ export function apiCallService($http) {
     });
   };
 
-  // POST user in friendlist
+  // POST add user in friendlist
   this.friend = function(id) {
-    return $http.post('/api/users/friend/add', { userId : id })
+    return $http.post('/api/users/friend', { userId : id })
     .then(response => {
       return response.data;
     });
   };
 
-  // DELETE user from friendlist
+  // POST delete user from friendlist
   this.unfriend = function(id) {
-    return $http.delete('/api/users/friend/remove', { userId : id })
+    return $http.post('/api/users/unfriend', { userId : id })
     .then(response => {
       return response.data;
     });

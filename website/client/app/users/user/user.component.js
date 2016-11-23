@@ -17,7 +17,6 @@ export class UserComponent {
     $scope.getCurrentUser = Auth.getCurrentUserSync;
     $scope.isFriend = false;
     $scope.friend = function() {
-      console.log('CALLED', $scope.isFriend);
       if ($scope.isFriend) {
         apiCall.unfriend($scope.user._id)
         .then(result => {
@@ -28,7 +27,6 @@ export class UserComponent {
         });
       }
       else {
-        console.log('CALLING FRIEND', $scope.user._id);
         apiCall.friend($scope.user._id)
         .then(result => {
           $scope.isFriend = true;
@@ -45,23 +43,22 @@ export class UserComponent {
     this.apiCall.getUserByUsername(username)
     .then(result => {
       this.$scope.user = result;
-      //this.setIsFriend();
+      this.setIsFriend();
     }, error => {
       console.log('error', error);
     });
   }
 
   setIsFriend() {
-    console.log('setting friend');
     this.Auth.getCurrentUser(currentUser => {
-      currentUser.friends.forEach(friend => {
-        if (friend._id === $scope.user._id) {
-          console.log('IS FRIEND');
+      for (var i = 0; i < currentUser.friends.length; ++i) {
+        if (currentUser.friends[i] === this.$scope.user._id) {
           this.$scope.isFriend = true;
+          return true;
         }
-      });
-      console.log('NOT FRIEND');
+      }
       this.$scope.isFriend = false;
+      return false;
     });
   }
 }

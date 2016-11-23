@@ -5,6 +5,29 @@ import config from '../../config/environment';
 import jwt from 'jsonwebtoken';
 import _ from 'lodash';
 
+function respondWithResult(res, statusCode) {
+  statusCode = statusCode || 200;
+  return function(entity) {
+    if (entity) {
+      return res.status(statusCode).json({
+        success: true,
+        time: new Date().getTime(),
+        data: entity
+      });
+    }
+  };
+}
+
+function saveUpdates(updates) {
+  return function(entity) {
+    var updated = _.extend(entity, updates);
+    return updated.save()
+      .then(updated => {
+        return updated;
+      });
+  };
+}
+
 function validationError(res, statusCode) {
   statusCode = statusCode || 422;
   return function(err) {
@@ -16,6 +39,16 @@ function handleError(res, statusCode) {
   statusCode = statusCode || 500;
   return function(err) {
     return res.status(statusCode).send(err);
+  };
+}
+
+function handleEntityNotFound(res) {
+  return function(entity) {
+    if(!entity) {
+      res.status(404).end();
+      return null;
+    }
+    return entity;
   };
 }
 
@@ -158,11 +191,9 @@ export function updateUserInfos(req, res) {
  * restriction: authenticated
  */
 exports.addFriend = function(req, res) {
-  console.log('ENTERED SERVER');
-  console.log(req.body);
   const friendId = req.body.userId;
   var update;
-  return User.findById(req.decoded._id, '-salt -password').exec()
+  return User.findById(req.user._id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
     .then(user => {
       update = user;
@@ -172,7 +203,7 @@ exports.addFriend = function(req, res) {
         if (!update.friends) { // for old model
           update.friends = [];
         }
-        if (update.friends.indexOf(friend) === -1) {
+        if (update.friends.indexOf(friend._id) === -1) {
           update.friends.push(friend);
         }
         return user;
@@ -190,7 +221,7 @@ exports.addFriend = function(req, res) {
 exports.removeFriend = function(req, res) {
   const friendId = req.body.userId;
   var update;
-  return User.findById(req.decoded._id, '-salt -password').exec()
+  return User.findById(req.user._id, '-salt -password').exec()
     .then(handleEntityNotFound(res))
     .then(user => {
       update = user;

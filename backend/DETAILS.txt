@@ -13,8 +13,8 @@ GET    /api/users/:id
 PUT    /api/users/:id
 DELETE /api/users/:id
 PUT    /api/users/:id/password
-POST   /api/users/friend/add
-DELETE /api/users/friend/remove
+POST   /api/users/friend
+POST   /api/users/unfriend
 
 /*
 * Zone
@@ -162,18 +162,18 @@ Body        : oldPassword [String]
             : newPassword [String]
 Returns     : Success
 
-/*****************************
-* POST /api/users/friend/add *
-*****************************/
+/*************************
+* POST /api/users/friend *
+*************************/
 Description : Adds a user to your friendlist
 Restrictions: Authenticated
 Headers     : x-access-token
 Body        : userId [String]
 Returns     : User details
 
-/**********************************
-* DELETE /api/users/friend/remove *
-**********************************/
+/***************************
+* POST /api/users/unfriend *
+***************************/
 Description : Removes a user from your friendlist
 Restrictions: Authenticated
 Headers     : x-access-token

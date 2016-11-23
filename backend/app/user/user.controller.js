@@ -217,7 +217,7 @@ exports.addFriend = function(req, res) {
         if (!update.friends) { // for old model
           update.friends = [];
         }
-        if (update.friends.indexOf(friend) === -1) {
+        if (update.friends.indexOf(friend._id) === -1) {
           update.friends.push(friend);
         }
         return user;
