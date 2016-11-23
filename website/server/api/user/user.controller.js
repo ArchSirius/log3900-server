@@ -158,6 +158,8 @@ export function updateUserInfos(req, res) {
  * restriction: authenticated
  */
 exports.addFriend = function(req, res) {
+  console.log('ENTERED SERVER');
+  console.log(req.body);
   const friendId = req.body.userId;
   var update;
   return User.findById(req.decoded._id, '-salt -password').exec()

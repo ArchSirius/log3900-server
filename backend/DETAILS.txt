@@ -1,6 +1,6 @@
 /*************************
 * LOG3900-01 A16 backend *
-* API 06/10/16           *
+* API 23/11/16           *
 *************************/
 
 /*
@@ -13,6 +13,8 @@ GET    /api/users/:id
 PUT    /api/users/:id
 DELETE /api/users/:id
 PUT    /api/users/:id/password
+POST   /api/users/friend/add
+DELETE /api/users/friend/remove
 
 /*
 * Zone
@@ -159,6 +161,24 @@ Headers     : x-access-token
 Body        : oldPassword [String]
             : newPassword [String]
 Returns     : Success
+
+/*****************************
+* POST /api/users/friend/add *
+*****************************/
+Description : Adds a user to your friendlist
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : userId [String]
+Returns     : User details
+
+/**********************************
+* DELETE /api/users/friend/remove *
+**********************************/
+Description : Removes a user from your friendlist
+Restrictions: Authenticated
+Headers     : x-access-token
+Body        : userId [String]
+Returns     : User details
 
 
 /*************************

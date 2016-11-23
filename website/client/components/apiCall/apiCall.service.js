@@ -57,6 +57,22 @@ export function apiCallService($http) {
     });
   };
 
+  // POST user in friendlist
+  this.friend = function(id) {
+    return $http.post('/api/users/friend/add', { userId : id })
+    .then(response => {
+      return response.data;
+    });
+  };
+
+  // DELETE user from friendlist
+  this.unfriend = function(id) {
+    return $http.delete('/api/users/friend/remove', { userId : id })
+    .then(response => {
+      return response.data;
+    });
+  };
+
   /********
   * ZONES *
   ********/
