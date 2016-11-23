@@ -50,7 +50,8 @@ UserSchema
     return {
       '_id': this._id,
       'username': this.username,
-      'name': this.name
+      'name': this.name,
+      'friends': this.friends
     };
   });
 
