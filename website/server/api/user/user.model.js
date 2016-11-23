@@ -19,6 +19,11 @@ var UserSchema = new Schema({
     type: String,
     default: 'user'
   },
+  friends: {
+    type: [Schema.ObjectId],
+    ref: 'User',
+    default: []
+  },
   password: {
     type: String,
     required: true
@@ -36,6 +41,7 @@ UserSchema
   .virtual('profile')
   .get(function() {
     return {
+      _id: this._id,
       username: this.username,
       name: this.name,
       role: this.role
@@ -49,7 +55,8 @@ UserSchema
     return {
       '_id': this._id,
       'username': this.username,
-      'name': this.name
+      'name': this.name,
+      'friends': this.friends
     };
   });
 

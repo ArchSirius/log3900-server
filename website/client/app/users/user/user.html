@@ -1,1 +1,25 @@
-<div>This is the user view.</div>
+<div class="container">
+
+  <div class="page-header">
+    <h1>{{ user.username }}</h1>
+  </div>
+
+  <div class="col-md-9">
+    <div class="row">
+      <h2>Nom</h2>
+      <h4>{{ user.name }}</h4>
+    </div>
+
+    <div class="row">
+      <h2>Key</h2>
+      <h4>Value</h4>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <a ng-hide="getCurrentUser()._id == user._id" href="#" ng-click="friend()">
+      {{ isFriend ? "Retirer de mes amis" : "Ajouter à mes amis" }}
+    </a>
+  </div>
+
+</div>
