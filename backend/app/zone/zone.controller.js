@@ -73,6 +73,9 @@ exports.index = function(req, res) {
       zones.forEach((zone, index) => {
         zones[index].salt = undefined;
         zones[index].password = undefined;
+        if (zones[index].private) {
+          zones[index].nodes = undefined;
+        }
       });
       return zones;
     })
@@ -85,10 +88,17 @@ exports.index = function(req, res) {
  * restriction: authenticated
  */
 exports.show = function(req, res) {
-  return Zone.findById(req.params.id, '-salt -password').exec()
+  return Zone.findById(req.params.id).exec()
     .then(handleEntityNotFound(res))
     .then(zone => {
       if (zone) {
+        if (zone.private && !zone.authenticate(req.headers.password)) {
+          return res.status(401).json({
+            success: false,
+            time: new Date().getTime(),
+            data: {}
+          });
+        }
         zone.salt = undefined;
         zone.password = undefined;
       }
@@ -137,14 +147,28 @@ exports.update = function(req, res) {
   // Update user fields
   const userId = req.decoded._id;
   req.body.updatedBy = req.decoded._id;
-  req.body.nodes.forEach(node => {
-    if (!node.createdBy) {
-      node.createdBy = userId;
-    }
-    node.updatedBy = userId;
-  });
-  return Zone.findById(req.params.id, '-salt -password').exec()
+  if (req.body.nodes) {
+    req.body.nodes.forEach(node => {
+      if (!node.createdBy) {
+        node.createdBy = userId;
+      }
+      node.updatedBy = userId;
+    });
+  }
+  return Zone.findById(req.params.id).exec()
     .then(handleEntityNotFound(res))
+    .then(zone => {
+      if (zone && zone.private && !zone.authenticate(req.headers.password)) {
+        return res.status(401).json({
+          success: false,
+          time: new Date().getTime(),
+          data: {}
+        });
+      }
+      zone.salt = undefined;
+      zone.password = undefined;
+      return zone;
+    })
     .then(saveUpdates(req.body))
     .then(respondWithResult(res))
     .catch(handleError(res));

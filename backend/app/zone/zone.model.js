@@ -102,6 +102,13 @@ ZoneSchema
     return createdBy.length;
   }, 'A creator is required');
 
+// Validate empty password
+ZoneSchema
+  .path('password')
+  .validate(function(password) {
+    return !this.private || password.length;
+  }, 'Password cannot be blank');
+
 var validatePresenceOf = function(value) {
   return value && value.length;
 };
@@ -119,8 +126,7 @@ ZoneSchema
       this.updatedAt = new Date();
       return next();
     }
-
-    if (!validatePresenceOf(this.password)) {
+    if (this.private && !validatePresenceOf(this.password)) {
       return next(new Error('Invalid password'));
     }
 

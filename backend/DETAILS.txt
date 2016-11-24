@@ -1,6 +1,6 @@
 /*************************
 * LOG3900-01 A16 backend *
-* API 23/11/16           *
+* API 24/11/16           *
 *************************/
 
 /*
@@ -214,6 +214,7 @@ Returns     : Created zone
 Description : Returns a zone
 Restrictions: Authenticated
 Headers     : x-access-token
+            : password [optional]
 Body        : --
 Returns     : Zone infos
 
@@ -223,6 +224,7 @@ Returns     : Zone infos
 Description : Updates a zone infos
 Restrictions: Authenticated
 Headers     : x-access-token
+            : password [optional]
 Body        : name      [String] [not null]
             : private   [Boolean]
             : password  [String]
