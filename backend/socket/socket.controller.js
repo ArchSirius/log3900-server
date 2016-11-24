@@ -234,32 +234,45 @@ module.exports = function(socket) {
 	 * Sends feedback to caller with event 'joined:zone'.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.zoneId - The unique _id of a zone.
+	 * @param {string} [data.password] - The zone's password if needed.
 	 */
 	const joinZone = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
 			const zoneId = data.zoneId;
 			if (zoneId) {
-				Zone.findById(zoneId, '-salt -password').exec()
+				Zone.findById(zoneId).exec()
 				.then(zone => {
 					if (zone) {
-						usersCtrl.registerZone(userId, zoneId);
-						socket.join(zoneId);
-						socket.broadcast.to(zoneId).emit('join:zone', {
-							user: usersCtrl.getUser(userId),
-							time: time
-						});
-						socket.emit('joined:zone', {
-							success: true,
-							zoneId: zoneId,
-							data: {
-								users: usersCtrl.getZoneUsers(zoneId),
-								nodes: zone.nodes,
-								lockedNodes: lockCtrl.getZoneLocks(zoneId)
-							},
-							time: time
-						});
-						joinChatroom(usersCtrl)({ room: zoneId });
+						if (zone.private && !zone.authenticate(data.password)) {
+							socket.emit('joined:zone', {
+								success: false,
+								message: 'Accès refusé.',
+								zoneId: zoneId,
+								time: time
+							});
+						}
+						else {
+							zone.salt = undefined;
+							zone.password = undefined;
+							usersCtrl.registerZone(userId, zoneId);
+							socket.join(zoneId);
+							socket.broadcast.to(zoneId).emit('join:zone', {
+								user: usersCtrl.getUser(userId),
+								time: time
+							});
+							socket.emit('joined:zone', {
+								success: true,
+								zoneId: zoneId,
+								data: {
+									users: usersCtrl.getZoneUsers(zoneId),
+									nodes: zone.nodes,
+									lockedNodes: lockCtrl.getZoneLocks(zoneId)
+								},
+								time: time
+							});
+							joinChatroom(usersCtrl)({ room: zoneId });
+						}
 					}
 					else {
 						socket.emit('joined:zone', {

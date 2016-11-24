@@ -33,7 +33,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 21/11/16     *
+* Socket.io 24/11/16     *
 *************************/
 
 /*
@@ -303,7 +303,8 @@ Body       : to   [String]
 * join:zone *
 ************/
 Description: Join a zone's room
-Body       : zoneId [String]
+Body       : zoneId   [String]
+           : password [String] [optional]
 
 /*************
 * leave:zone *
