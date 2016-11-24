@@ -9,6 +9,14 @@ export function apiCallService($http) {
   * USERS *
   ********/
 
+  // GET self user
+  this.getMe = function() {
+    return $http.get('/api/users/me')
+    .then(response => {
+      return response.data;
+    });
+  };
+
   // GET all users
   this.getUsers = function() {
     return $http.get('/api/users')
