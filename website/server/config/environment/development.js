@@ -7,10 +7,10 @@ module.exports = {
 
   // MongoDB connection options
   mongo: {
-    uri: 'mongodb://localhost/log3900-dev'
+    uri: 'mongodb://localhost/log3900'
   },
 
   // Seed database on startup
-  seedDB: true
+  seedDB: false
 
 };

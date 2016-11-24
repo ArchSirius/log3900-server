@@ -13,6 +13,9 @@ export class NavbarComponent {
   }, {
     title: 'Zones',
     state: 'zones'
+  }, {
+    title: 'Mes amis',
+    state: 'friends'
   }];
 
   isCollapsed = true;

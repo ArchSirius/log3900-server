@@ -194,7 +194,7 @@ exports.update = function(req, res) {
  * restriction: authenticated
  */
 exports.me = function(req, res) {
-  return User.findById(req.decoded._id, '-salt -password').exec()
+  return User.findById(req.decoded._id, '-salt -password').populate('friends', '-salt -password').exec()
     .then(handleEntityNotFound(res))
     .then(respondWithResult(res))
     .catch(validationError(res));

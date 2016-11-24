@@ -30,13 +30,14 @@ import socket from '../components/socket/socket.service';
 import apiCall from '../components/apiCall/apiCall.service';
 import UsersComponent from './users/users.component';
 import ZonesComponent from './zones/zones.component';
+import FriendsComponent from './friends/friends.component';
 import qr from 'angular-qr';
 
 import './app.css';
 
 angular.module('log3900App', [ngCookies, ngResource, ngSanitize, 'btford.socket-io', uiRouter,
     uiBootstrap, _Auth, account, admin, navbar, footer, main, constants, socket, util,
-    apiCall, UsersComponent, ZonesComponent, qr
+    apiCall, UsersComponent, ZonesComponent, FriendsComponent, qr
   ])
   .config(routeConfig)
   .run(function($rootScope, $location, Auth) {
