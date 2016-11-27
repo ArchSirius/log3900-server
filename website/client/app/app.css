@@ -44,6 +44,7 @@
 /* Component styles are injected through gulp */
 /* inject:css */
 @import 'admin/admin.css';
+@import 'friends/friends.css';
 @import 'main/main.css';
 @import 'users/user/user.css';
 @import 'users/users.css';
