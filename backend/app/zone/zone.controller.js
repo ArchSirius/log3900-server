@@ -16,6 +16,12 @@ function respondWithResult(res, statusCode) {
   statusCode = statusCode || 200;
   return function(entity) {
     if (entity) {
+      if (entity.salt) {
+        delete entity.salt;
+      }
+      if (entity.password) {
+        delete entity.password;
+      }
       return res.status(statusCode).json({
         success: true,
         time: new Date().getTime(),
@@ -126,6 +132,13 @@ exports.create = function(req, res) {
       node.updatedBy = userId;
     });
   }
+  if (req.body.private && ! req.body.password) {
+    return res.status(401).json({
+      success: false,
+      time: new Date().getTime(),
+      data: {}
+    });
+  }
   return Zone.create(req.body)
     .then(zone => {
       zone.salt = undefined;
@@ -158,6 +171,13 @@ exports.update = function(req, res) {
   return Zone.findById(req.params.id).populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(zone => {
+      if (zone && !zone.private && req.body.private && !req.body.password) {
+        return res.status(401).json({
+          success: false,
+          time: new Date().getTime(),
+          data: {}
+        });
+      }
       if (zone && zone.private && !zone.authenticate(req.headers.password)) {
         return res.status(401).json({
           success: false,
@@ -165,8 +185,6 @@ exports.update = function(req, res) {
           data: {}
         });
       }
-      zone.salt = undefined;
-      zone.password = undefined;
       return zone;
     })
     .then(saveUpdates(req.body))
