@@ -6,6 +6,7 @@ var user;
 var genUser = function() {
   user = new User({
     provider: 'local',
+    username: 'test',
     name: 'Fake User',
     email: 'test@example.com',
     password: 'password'
@@ -38,6 +39,23 @@ describe('User Model', function() {
         var userDup = genUser();
         return userDup.save();
       }).should.be.rejected;
+  });
+
+  describe('#username', function() {
+    it('should fail when saving with a blank username', function() {
+      user.username = '';
+      return user.save().should.be.rejected;
+    });
+
+    it('should fail when saving with a null username', function() {
+      user.username = null;
+      return user.save().should.be.rejected;
+    });
+
+    it('should fail when saving without a username', function() {
+      user.username = undefined;
+      return user.save().should.be.rejected;
+    });
   });
 
   describe('#email', function() {

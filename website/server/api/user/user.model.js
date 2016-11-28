@@ -87,7 +87,7 @@ UserSchema
   .path('email')
   .validate(function(email) {
     return email.length;
-  }, 'L\'adresse courriel ne peut petre vide.');
+  }, 'L\'adresse courriel ne peut être vide.');
 
 // Validate empty password
 UserSchema

@@ -33,8 +33,7 @@ describe('Zone API:', function() {
       request(app)
         .post('/api/zones')
         .send({
-          name: 'New Zone',
-          info: 'This is the brand new zone!!!'
+          name: 'New Zone'
         })
         .expect(201)
         .expect('Content-Type', /json/)
@@ -49,7 +48,6 @@ describe('Zone API:', function() {
 
     it('should respond with the newly created zone', function() {
       newZone.name.should.equal('New Zone');
-      newZone.info.should.equal('This is the brand new zone!!!');
     });
   });
 
@@ -76,7 +74,6 @@ describe('Zone API:', function() {
 
     it('should respond with the requested zone', function() {
       zone.name.should.equal('New Zone');
-      zone.info.should.equal('This is the brand new zone!!!');
     });
   });
 
@@ -87,8 +84,7 @@ describe('Zone API:', function() {
       request(app)
         .put(`/api/zones/${newZone._id}`)
         .send({
-          name: 'Updated Zone',
-          info: 'This is the updated zone!!!'
+          name: 'Updated Zone'
         })
         .expect(200)
         .expect('Content-Type', /json/)
@@ -107,7 +103,6 @@ describe('Zone API:', function() {
 
     it('should respond with the original zone', function() {
       updatedZone.name.should.equal('New Zone');
-      updatedZone.info.should.equal('This is the brand new zone!!!');
     });
 
     it('should respond with the updated zone on a subsequent GET', function(done) {
@@ -122,7 +117,6 @@ describe('Zone API:', function() {
           let zone = res.body;
 
           zone.name.should.equal('Updated Zone');
-          zone.info.should.equal('This is the updated zone!!!');
 
           done();
         });
@@ -136,8 +130,7 @@ describe('Zone API:', function() {
       request(app)
         .patch(`/api/zones/${newZone._id}`)
         .send([
-          { op: 'replace', path: '/name', value: 'Patched Zone' },
-          { op: 'replace', path: '/info', value: 'This is the patched zone!!!' }
+          { op: 'replace', path: '/name', value: 'Patched Zone' }
         ])
         .expect(200)
         .expect('Content-Type', /json/)
@@ -156,7 +149,6 @@ describe('Zone API:', function() {
 
     it('should respond with the patched zone', function() {
       patchedZone.name.should.equal('Patched Zone');
-      patchedZone.info.should.equal('This is the patched zone!!!');
     });
   });
 
