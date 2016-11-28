@@ -3,39 +3,25 @@ import uiRouter from 'angular-ui-router';
 import routing from './main.routes';
 
 export class MainController {
-  awesomeThings = [];
-  newThing = '';
-
-  /*@ngInject*/
-  constructor($http, $scope, socket) {
-    this.$http = $http;
-    this.socket = socket;
-
-    $scope.$on('$destroy', function() {
-      socket.unsyncUpdates('thing');
-    });
-  }
-
-  $onInit() {
-    this.$http.get('/api/things')
-      .then(response => {
-        this.awesomeThings = response.data;
-        this.socket.syncUpdates('thing', this.awesomeThings);
-      });
-  }
-
-  addThing() {
-    if(this.newThing) {
-      this.$http.post('/api/things', {
-        name: this.newThing
-      });
-      this.newThing = '';
-    }
-  }
-
-  deleteThing(thing) {
-    this.$http.delete(`/api/things/${thing._id}`);
-  }
+  members = [{
+    name: 'Maxime Clavel',
+    info: 'Client léger'
+  }, {
+    name: 'Philippe Fortin',
+    info: 'Client lourd'
+  }, {
+    name: 'Pierre-Olivier Guimond-Cataford',
+    info: 'Client léger'
+  }, {
+    name: 'Jennifer Khoury',
+    info: 'Client Léger'
+  }, {
+    name: 'Louis Racicot',
+    info: 'Client Lourd'
+  }, {
+    name: 'Samuel Rondeau',
+    info: 'Serveur et site web'
+  }];
 }
 
 export default angular.module('log3900App.main', [uiRouter])
