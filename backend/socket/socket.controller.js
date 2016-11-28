@@ -189,7 +189,7 @@ module.exports = function(socket) {
 				msgCtrl.sendPrivateMessage(usersCtrl, userId, to, text);
 				socket.emit('send:private:message', {
 					from: usersCtrl.getUser(userId),
-					to: usersCtrl.getUser(to),
+					to: usersCtrl.getUser(to) || { userId: to },
 					text: text,
 					time: new Date().getTime()
 				});
