@@ -267,10 +267,24 @@ module.exports = function(socket) {
 								data: {
 									users: usersCtrl.getZoneUsers(zoneId),
 									nodes: zone.nodes,
-									lockedNodes: lockCtrl.getZoneLocks(zoneId)
+									lockedNodes: lockCtrl.getZoneLocks(zoneId),
+									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone)
 								},
 								time: time
 							});
+							const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, userId);
+							if (assignedStartpoint) {
+								socket.broadcast.to(zoneId).emit('assign:startpoint', {
+									user: usersCtrl.getUser(userId),
+									nodeId: assignedStartpoint,
+									time: time
+								});
+								socket.emit('assigned:startpoint', {
+									success: true,
+									nodeId: assignedStartpoint,
+									time: time
+								});
+							}
 							joinChatroom(usersCtrl)({ room: zoneId });
 						}
 					}
