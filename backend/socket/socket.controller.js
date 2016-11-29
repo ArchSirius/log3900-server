@@ -232,6 +232,7 @@ module.exports = function(socket) {
 	/**
 	 * Set a user's active zone, make it join the zone's socket room, send notification in socket room with event 'join:zone'.
 	 * Sends feedback to caller with event 'joined:zone'.
+	 * Tries to assign a starting point to the caller and send with 'assign:startpoint' and 'assigned:startpoint'.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.zoneId - The unique _id of a zone.
 	 * @param {string} [data.password] - The zone's password if needed.
@@ -268,7 +269,7 @@ module.exports = function(socket) {
 									users: usersCtrl.getZoneUsers(zoneId),
 									nodes: zone.nodes,
 									lockedNodes: lockCtrl.getZoneLocks(zoneId),
-									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone)
+									assignedStartpoints: lockCtrl.getAssignedStartpoints(zoneId)
 								},
 								time: time
 							});
@@ -321,8 +322,9 @@ module.exports = function(socket) {
 	/**
 	 * Remove a user's active zone, make it leave the zone's socket room, send notification in socket room with event 'leave:zone'.
 	 * Sends feedback to caller with event 'left:zone'.
+	 * Unassign starting point if needed and send 'unassign:startpoint'.
 	 */
-	const leaveZone = function(usersCtrl) {
+	const leaveZone = function(usersCtrl, lockCtrl) {
 		return function () {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(userId);
@@ -337,6 +339,14 @@ module.exports = function(socket) {
 					success: true,
 					time: time
 				});
+				const nodeId = lockCtrl.unassignUserStartpoint(zoneId, userId);
+				if (nodeId) {
+					socket.broadcast.to(zoneId).emit('unassign:startpoint', {
+						user: usersCtrl.getUser(userId),
+						nodeId: nodeId,
+						time: time
+					});
+				}
 				socket.leave(zoneId);
 			}
 			else {

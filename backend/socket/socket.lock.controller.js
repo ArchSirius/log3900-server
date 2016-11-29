@@ -121,13 +121,13 @@ exports.getZoneLocks = function(zoneId) {
  * @returns {string} The _id of the assigned node, if success.
  */
 exports.tryAssignUserStartpoint = function(zone, userId) {
-	if (this.getUserStartpoint(zone, userId)) {
+	if (this.getUserStartpoint(zone._id, userId)) {
 		return undefined;
 	}
 	const nodes = getStartNodes(zone);
 	for (var i = 0; i < nodes.length; ++i) {
-		if (!this.getStartpointUser(zone, nodes[i]._id)) {
-			if (this.assignUserStartpoint(zone, nodes[i], userId)) {
+		if (!this.getStartpointUser(zone._id, nodes[i]._id)) {
+			if (this.assignUserStartpoint(zone._id, nodes[i], userId)) {
 				return nodes[i]._id;
 			}
 		}
@@ -137,44 +137,47 @@ exports.tryAssignUserStartpoint = function(zone, userId) {
 
 /**
  * Assign a user to a starting point if one is available.
- * @param {Object} zone - The target zone containing the nodes.
+ * @param {Object} zoneId - The target zone _id containing the nodes.
  * @param {Object} node - The node to assign.
  * @param {string} userId - The unique _id of a user.
  * @returns {boolean} Success status.
  */
-exports.assignUserStartpoint = function(zone, node, userId) {
-	if (!assignedStartNodes[zone._id]) {
-		assignedStartNodes[zone._id] = {};
+exports.assignUserStartpoint = function(zoneId, node, userId) {
+	if (!assignedStartNodes[zoneId]) {
+		assignedStartNodes[zoneId] = {};
 	}
-	if (node.type !== 'depart' || this.getStartpointUser(zone, node._id) || this.getUserStartpoint(zone, userId)) {
+	if (node.type !== 'depart' || this.getStartpointUser(zoneId, node._id) || this.getUserStartpoint(zoneId, userId)) {
 		return false;
 	}
-	assignedStartNodes[zone._id][String(node._id)] = String(userId);
+	assignedStartNodes[zoneId][String(node._id)] = String(userId);
 	return true;
 };
 
 /**
  * Unassign a user from his starting point.
- * @param {Object} zone - The target zone containing the nodes.
+ * @param {Object} zoneId - The target zone _id containing the nodes.
  * @param {string} userId - The unique _id of a user.
+ * @param {string} The node _id, if was assigned.
  */
-exports.unassignUserStartpoint = function(zone, userId) {
-	if (assignedStartNodes[zone._id]) {
-		const nodeId = this.getUserStartpoint(zone, userId);
-		if (nodeId && assignedStartNodes[zone._id][nodeId]) {
-			delete assignedStartNodes[zone._id][nodeId];
+exports.unassignUserStartpoint = function(zoneId, userId) {
+	if (assignedStartNodes[zoneId]) {
+		const nodeId = this.getUserStartpoint(zoneId, userId);
+		if (nodeId && assignedStartNodes[zoneId][nodeId]) {
+			delete assignedStartNodes[zoneId][nodeId];
+			return nodeId;
 		}
 	}
+	return undefined;
 };
 
 /**
  * Return the starting point (node _id) assigned to the user.
- * @param {Object} zone - The target zone containing the nodes.
+ * @param {Object} zoneId - The target zone _id containing the nodes.
  * @param {string} userId - The unique _id of a user.
- * @returns {Object} The node, if exists.
+ * @returns {string} The node _id, if exists.
  */
-exports.getUserStartpoint = function(zone, userId) {
-	const data = assignedStartNodes[zone._id];
+exports.getUserStartpoint = function(zoneId, userId) {
+	const data = assignedStartNodes[zoneId];
 	if (!data) {
 		return undefined;
 	}
@@ -188,12 +191,12 @@ exports.getUserStartpoint = function(zone, userId) {
 
 /**
  * Return the user assigned to the starting point (node _id).
- * @param {Object} zone - The target zone containing the nodes.
+ * @param {Object} zoneId - The target zone _id containing the nodes.
  * @param {string} nodeId - The unique _id of a node.
- * @returns {Object} The user, if assigned.
+ * @returns {string} The user _id, if assigned.
  */
-exports.getStartpointUser = function(zone, nodeId) {
-	const data = assignedStartNodes[zone._id];
+exports.getStartpointUser = function(zoneId, nodeId) {
+	const data = assignedStartNodes[zoneId];
 	if (!data) {
 		return undefined;
 	}
@@ -202,12 +205,12 @@ exports.getStartpointUser = function(zone, nodeId) {
 
 /**
  * Return the assigned starting points and users in a zone.
- * @param {Object} zone - The target zone containing the nodes.
+ * @param {Object} zoneId - The target zone _id containing the nodes.
  * @returns {Object[]} The array of corresponding node._id and user._id.
  */
-exports.getAssignedStartpoints = function(zone) {
+exports.getAssignedStartpoints = function(zoneId) {
 	var res = [];
-	const data = assignedStartNodes[zone._id];
+	const data = assignedStartNodes[zoneId];
 	if (!data) {
 		return [];
 	}

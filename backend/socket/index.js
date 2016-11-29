@@ -30,7 +30,7 @@ module.exports = function (socket) {
 	socket.on('send:message', controller.sendMessage(usersCtrl));
 
 	socket.on('join:zone', controller.joinZone(usersCtrl, lockCtrl));
-	socket.on('leave:zone', controller.leaveZone(usersCtrl));
+	socket.on('leave:zone', controller.leaveZone(usersCtrl, lockCtrl));
 	socket.on('edit:nodes', controller.editNodes(usersCtrl, lockCtrl));
 	socket.on('create:nodes', controller.createNodes(usersCtrl));
 	socket.on('delete:nodes', controller.deleteNodes(usersCtrl, lockCtrl));
