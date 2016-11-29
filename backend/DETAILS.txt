@@ -33,7 +33,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 24/11/16     *
+* Socket.io 28/11/16     *
 *************************/
 
 /*
@@ -72,6 +72,9 @@ join:zone
 joined:zone
 leave:zone
 left:zone
+assign:startpoint
+assigned:startpoint
+unassign:startpoint
 edit:nodes
 edited:nodes
 create:nodes
@@ -452,6 +455,30 @@ Description: Return leave:zone feedback to caller
 Body       : success [Boolean]
            : message [String] [optional]
            : time    [Integer]
+
+/********************
+* assign:startpoint *
+********************/
+Description: Assign a user to a startpoint
+Body       : user   [Object]
+           : nodeId [String]
+           : time   [Integer]
+
+/**********************
+* assigned:startpoint *
+**********************/
+Description: Return assign:startpoint feedback to caller
+Body       : success [Boolean]
+           : nodeId  [String]
+           : time    [Integer]
+
+/**********************
+* unassign:startpoint *
+**********************/
+Description: Unassign a user from a startpoint
+Body       : user   [Object]
+           : nodeId [String]
+           : time   [Integer]
 
 /*************
 * edit:nodes *
