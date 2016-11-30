@@ -235,6 +235,7 @@ module.exports = function(socket) {
 	 * Tries to assign a starting point to the caller and send with 'assign:startpoint' and 'assigned:startpoint'.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.zoneId - The unique _id of a zone.
+	 * @param {boolean} [data.assignStartpoint=false] - Whether to assign try to assign a startpoint or not.
 	 * @param {string} [data.password] - The zone's password if needed.
 	 */
 	const joinZone = function(usersCtrl, lockCtrl) {
@@ -273,18 +274,20 @@ module.exports = function(socket) {
 								},
 								time: time
 							});
-							const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, userId);
-							if (assignedStartpoint) {
-								socket.broadcast.to(zoneId).emit('assign:startpoint', {
-									user: usersCtrl.getUser(userId),
-									nodeId: assignedStartpoint,
-									time: time
-								});
-								socket.emit('assigned:startpoint', {
-									success: true,
-									nodeId: assignedStartpoint,
-									time: time
-								});
+							if (data.assignStartpoint) {
+								const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, userId);
+								if (assignedStartpoint) {
+									socket.broadcast.to(zoneId).emit('assign:startpoint', {
+										user: usersCtrl.getUser(userId),
+										nodeId: assignedStartpoint,
+										time: time
+									});
+									socket.emit('assigned:startpoint', {
+										success: true,
+										nodeId: assignedStartpoint,
+										time: time
+									});
+								}
 							}
 							joinChatroom(usersCtrl)({ room: zoneId });
 						}

@@ -306,8 +306,9 @@ Body       : to   [String]
 * join:zone *
 ************/
 Description: Join a zone's room
-Body       : zoneId   [String]
-           : password [String] [optional]
+Body       : zoneId           [String]
+           : assignStartpoint [Boolean] [optional]
+           : password         [String] [optional]
 
 /*************
 * leave:zone *
