@@ -36,5 +36,7 @@ module.exports = function (socket) {
 	socket.on('delete:nodes', controller.deleteNodes(usersCtrl, lockCtrl));
 	socket.on('lock:nodes', controller.lockNodes(usersCtrl, lockCtrl));
 	socket.on('unlock:nodes', controller.unlockNodes(usersCtrl, lockCtrl));
+	socket.on('start:simulation', controller.startSimulation(usersCtrl));
+	socket.on('end:simulation', controller.endSimulation(usersCtrl));
 	socket.on('ping:position', controller.pingPosition(usersCtrl));
 };

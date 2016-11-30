@@ -11,6 +11,12 @@ module.exports = function(socket) {
 	const userId = socket.decoded_token._id;
 
 	/**
+	 * Temporary information about the user session.
+	 * @private
+	 */
+	var tmp = {};
+
+	/**
 	 * Constructs basic user informations needed for the controllers and send basic data to user with event 'init'.
 	 * @param {Object} user - The user to own the socket.
 	 * @param {string} user._id - The unique _id of a user.
@@ -807,6 +813,35 @@ module.exports = function(socket) {
 	};
 
 	/**
+	 * Start a simulation and send request in socket room with event 'start:simulation'.
+	 */
+	const startSimulation = function(usersCtrl) {
+		return function () {
+			const time = new Date().getTime();
+			socket.broadcast.to(usersCtrl.getZoneId(userId)).emit('start:simulation', {
+				user: usersCtrl.getUser(userId),
+				time: time
+			});
+			tmp.simulation = { start: time };
+		};
+	};
+
+	/**
+	 * End a simulation and send request in socket room with event 'end:simulation'.
+	 */
+	const endSimulation = function(usersCtrl) {
+		return function () {
+			const time = new Date().getTime();
+			socket.broadcast.to(usersCtrl.getZoneId(userId)).emit('end:simulation', {
+				user: usersCtrl.getUser(userId),
+				time: time
+			});
+			const simulationTime = time - tmp.simulation.start; // TODO save in stats
+			delete tmp.simulation;
+		};
+	};
+
+	/**
 	 * Minify a node to remove all unnecessary properties.
 	 * @private
 	 * @param {Object} node - The node to minify.
@@ -859,6 +894,8 @@ module.exports = function(socket) {
 		deleteNodes: deleteNodes,
 		lockNodes: lockNodes,
 		unlockNodes: unlockNodes,
+		startSimulation: startSimulation,
+		endSimulation: endSimulation,
 		pingPosition: pingPosition
 	};
 };
