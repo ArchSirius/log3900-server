@@ -1,3 +1,5 @@
+const User = require('../app/user/user.model');
+
 /**
  * Contains the connected users and their active zone and chatrooms, if any.
  * @private
@@ -40,6 +42,26 @@ exports.getUser = function(userId) {
 		};
 	}
 	return undefined;
+};
+
+/**
+ * Return a user's details from database.
+ * @param {string} userId - The unique _id of a user.
+ * @param {callback} [callback] - The callback that handles the response.
+ * @returns {Promise} A promise to return the user.
+ */
+exports.getUserAsync = function(userId, callback) {
+	const query = User.findById(userId, 'username');
+	if (callback) {
+		query.then(user => {
+			user = {
+				userId: user._id,
+				username: user.username
+			};
+			callback(user);
+		});
+	}
+	return query;
 };
 
 /**

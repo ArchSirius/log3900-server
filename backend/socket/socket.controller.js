@@ -191,14 +191,25 @@ module.exports = function(socket) {
 		return function (data) {
 			const to = data.to;
 			const text = data.text;
-			try {
-				msgCtrl.sendPrivateMessage(usersCtrl, userId, to, text);
+			const sendFeedback = function(recipient) {
 				socket.emit('send:private:message', {
 					from: usersCtrl.getUser(userId),
-					to: usersCtrl.getUser(to) || { userId: to },
+					to: recipient,
 					text: text,
 					time: new Date().getTime()
 				});
+			};
+			try {
+				msgCtrl.sendPrivateMessage(usersCtrl, userId, to, text);
+				const recipient = usersCtrl.getUser(to);
+				if (recipient) {
+					sendFeedback(recipient);
+				}
+				else {
+					usersCtrl.getUserAsync(to, user => {
+						sendFeedback(user);
+					});
+				}
 			}
 			catch (error) {
 				// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
