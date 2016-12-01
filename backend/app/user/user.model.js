@@ -21,6 +21,16 @@ var UserSchema = new Schema({
     ref: 'User',
     default: []
   },
+  stats: {
+    playedGames: {
+      type: Number,
+      default: 0
+    },
+    playedTime: {
+      type: Number,
+      default: 0
+    }
+  },
   password: {
     type: String,
     required: true
@@ -39,7 +49,8 @@ UserSchema
     return {
       '_id': this._id,
       'username': this.username,
-      'name': this.name
+      'name': this.name,
+      'stats': this.stats
     };
   });
 
@@ -51,7 +62,8 @@ UserSchema
       '_id': this._id,
       'username': this.username,
       'name': this.name,
-      'friends': this.friends
+      'friends': this.friends,
+      'stats': this.stats
     };
   });
 

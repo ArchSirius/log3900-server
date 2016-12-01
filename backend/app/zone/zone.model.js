@@ -72,8 +72,14 @@ var ZoneSchema = new Schema({
   salt: String,
   thumbnail: String,
   stats: {
-    playedGames: Number,
-    playedTime: Number
+    playedGames: {
+      type: Number,
+      default: 0
+    },
+    playedTime: {
+      type: Number,
+      default: 0
+    }
   },
   nodes: {
     type: [ NodeSchema ],
