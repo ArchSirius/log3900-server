@@ -54,6 +54,8 @@ create:nodes
 delete:nodes
 lock:nodes
 unlock:nodes
+start:simulation
+end:simulation
 ping:position
 
 /*
@@ -85,6 +87,8 @@ lock:nodes
 locked:nodes
 unlock:nodes
 unlocked:nodes
+start:simulation
+end:simulation
 ping:position
 
 
@@ -346,6 +350,18 @@ Body       : nodes [Array]
 Description: Unlock nodes to allow edit from other users
 Body       : nodes [Array]
 
+/*******************
+* start:simulation *
+*******************/
+Description: Start a simulation online
+Body       : --
+
+/*****************
+* end:simulation *
+*****************/
+Description: End a simulation online
+Body       : --
+
 /****************
 * ping:position *
 ****************/
@@ -567,6 +583,20 @@ Body       : success [Boolean]
            : message [String] [optional]
            : nodes   [Array]
            : time    [Integer]
+
+/*******************
+* start:simulation *
+*******************/
+Description: Send start simulation request to all listening clients
+Body       : user [Object]
+           : time [Integer]
+
+/*****************
+* end:simulation *
+*****************/
+Description: Send end simulation request to all listening clients
+Body       : user [Object]
+           : time [Integer]
 
 /****************
 * ping:position *
