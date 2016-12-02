@@ -48,7 +48,7 @@ exports.sendPrivateMessage = function(usersCtrl, senderId, recipientId, text) {
  * @param {integer} [limit=100] - The maximum amount of messages to fetch by most recent.
  */
 exports.fetchGroupMessages = function(name, callback, limit) {
-	if (!(name || callback)) {
+	if (!(name && callback)) {
 		return;
 	}
 	Channel.findOne({ name: name }).exec()
@@ -65,18 +65,54 @@ exports.fetchGroupMessages = function(name, callback, limit) {
 			.select('text createdBy createdAt')
 			.exec()
 			.then(messages => {
-				if (callback) {
-					callback(messages);
-				}
+				callback(messages);
 			});
 		}
-		else if (callback) {
+		else {
 			callback([]);
 		}
 	})
 	.catch(error => {
 		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
 		console.log('SERVER ERROR in socket.message.controller#fetchGroupMessages', error);
+	});
+};
+
+/**
+ * Fetch a private conversation's latest messages.
+ * @param {string} userA - A user's unique _id.
+ * @param {string} userB - A user's unique _id.
+ * @param {callback} callback - The callback that handles the response.
+ * @param {integer} [limit=100] - The maximum amount of messages to fetch by most recent.
+ */
+exports.fetchPrivateMessages = function(userA, userB, callback, limit) {
+	if (!(userA && userB && callback)) {
+		return;
+	}
+	ChatRelation.get(userA, userB).exec()
+	.then(chatRelation => {
+		if (chatRelation) {
+			Message
+			.find({ channel: chatRelation.channel })
+			.sort({ createdAt: 1 })
+			.limit(limit || 100)
+			.populate({
+				path: 'createdBy',
+				select: 'username'
+			})
+			.select('text createdBy createdAt')
+			.exec()
+			.then(messages => {
+				callback(messages);
+			});
+		}
+		else {
+			callback([]);
+		}
+	})
+	.catch(error => {
+		// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+		console.log('SERVER ERROR in socket.message.controller#fetchPrivateMessages', error);
 	});
 };
 

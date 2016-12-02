@@ -48,6 +48,7 @@ join:zone
 leave:zone
 send:group:message
 send:private:message
+get:private:messages
 send:message [deprecated since 14-11-16]
 edit:nodes
 create:nodes
@@ -65,6 +66,7 @@ connect
 init
 send:group:message
 send:private:message
+get:private:messages
 send:message [deprecated since 14-11-16]
 user:join
 user:left
@@ -306,6 +308,12 @@ Description: Send a private message to a user
 Body       : to   [String]
            : text [String]
 
+/***********************
+* get:private:messages *
+***********************/
+Description: Fetch private conversation's history
+Body       : userId [String]
+
 /************
 * join:zone *
 ************/
@@ -404,6 +412,14 @@ Body       : from [Object]
            : to   [Object]
            : text [String]
            : time [Integer]
+
+/***********************
+* get:private:messages *
+***********************/
+Description: Fetch private conversation's history
+Body       : success  [Boolean]
+           : messages [Array]
+           : time     [Integer]
 
 /************
 * user:join *

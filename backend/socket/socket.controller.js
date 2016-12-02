@@ -219,6 +219,21 @@ module.exports = function(socket) {
 	};
 
 	/**
+	 * Fetch a private conversation's latest messages and send with event 'get:private:messages'.
+	 * @param {Object} data - The data received from the caller in JSON form.
+	 * @param {string} data.userId - The other user _id in the conversation.
+	 */
+	const getPrivateMessages = function(data) {
+		msgCtrl.fetchPrivateMessages(userId, data.userId, messages => {
+			socket.emit('get:private:messages', {
+				success: true,
+				messages: messages,
+				time: new Date().getTime()
+			});
+		});
+	};
+
+	/**
 	 * Send message in socket room with event 'send:message'.
 	 * @deprecated since 14-11-16
 	 * @param {Object} data - The data received from the caller in JSON form.
@@ -897,6 +912,7 @@ module.exports = function(socket) {
 		leaveChatroom: leaveChatroom,
 		sendGroupMessage: sendGroupMessage,
 		sendPrivateMessage: sendPrivateMessage,
+		getPrivateMessages: getPrivateMessages,
 		sendMessage: sendMessage,
 		joinZone: joinZone,
 		leaveZone: leaveZone,
