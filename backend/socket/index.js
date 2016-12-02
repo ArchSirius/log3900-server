@@ -27,6 +27,7 @@ module.exports = function (socket) {
 	socket.on('leave:chatroom', controller.leaveChatroom(usersCtrl));
 	socket.on('send:group:message', controller.sendGroupMessage(usersCtrl));
 	socket.on('send:private:message', controller.sendPrivateMessage(usersCtrl));
+	socket.on('get:private:messages', controller.getPrivateMessages);
 	socket.on('send:message', controller.sendMessage(usersCtrl));
 
 	socket.on('join:zone', controller.joinZone(usersCtrl, lockCtrl));
