@@ -32,5 +32,7 @@ io.sockets
 }))
 .on('authenticated', socket);
 
+require('./changelogManager')();
+
 server.listen(port);
 console.log('Magic happens at http://localhost:' + port);

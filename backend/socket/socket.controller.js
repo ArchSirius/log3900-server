@@ -1,3 +1,4 @@
+const User    = require('../app/user/user.model');
 const Zone    = require('../app/zone/zone.model');
 const _       = require('lodash');
 const msgCtrl = require('./socket.message.controller');
@@ -858,12 +859,37 @@ module.exports = function(socket) {
 	const endSimulation = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
+			const zoneId = usersCtrl.getZoneId(userId);
+
 			socket.broadcast.to(usersCtrl.getZoneId(userId)).emit('end:simulation', {
 				user: usersCtrl.getUser(userId),
 				time: time
 			});
-			const simulationTime = time - tmp.simulation.start; // TODO save in stats
-			delete tmp.simulation;
+			if (!tmp.simulation || !tmp.simulation.start) {
+				return;
+			}
+			const simulationTime = (time - tmp.simulation.start) / 1000;
+			Zone.findById(zoneId, '-salt -password').exec()
+			.then(zone => {
+				if (!zone) {
+					return;
+				}
+				zone.stats.playedGames++;
+				zone.stats.playedTime += simulationTime;
+			})
+			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+			.catch(error => {
+				console.log('SERVER ERROR in endSimulation', error);
+			});
+			User.findById(userId, '-salt -password').exec()
+			.then(user => {
+				user.stats.playedGames++;
+				user.stats.playedTime += simulationTime;
+			})
+			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
+			.catch(error => {
+				console.log('SERVER ERROR in endSimulation', error);
+			});
 		};
 	};
 
