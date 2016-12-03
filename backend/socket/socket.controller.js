@@ -538,12 +538,11 @@ module.exports = function(socket) {
 					// Iterate over user nodes
 					userNodes.forEach(node => {
 
-						node.createdAt = time;
-						node.updatedAt = time;
+						node.zone = zone;
 						node.createdBy = activeUser._id;
 						node.updatedBy = activeUser._id;
 
-						zone.nodes.push(node);
+						zone.nodes.push(new Node(node));
 
 					});
 
@@ -553,14 +552,14 @@ module.exports = function(socket) {
 
 						// Return created nodes with simple structure
 						var nodes = saved.nodes.slice(index).map(minifyNodeSoft);
-						// Send back localId
-						nodes.forEach((node, nIndex) => {
-							node.localId = userNodes[nIndex].localId;
-						});
 						socket.broadcast.to(zoneId).emit('create:nodes', {
 							user: activeUser,
 							nodes: nodes,
 							time: time
+						});
+						// Send back localId
+						nodes.forEach((node, nIndex) => {
+							node.localId = userNodes[nIndex].localId;
 						});
 						socket.emit('created:nodes', {
 							success: true,
