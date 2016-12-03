@@ -262,6 +262,9 @@ exports.getZoneLocksAsync = function(zoneId, callback) {
  */
 const getStartNodes = function(zone) {
 	var res = [];
+	if (!zone.nodes) {
+		return res;
+	}
 	zone.nodes.forEach(node => {
 		if (node.type === 'depart') {
 			res.push(node);
