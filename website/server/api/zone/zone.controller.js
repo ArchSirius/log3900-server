@@ -66,7 +66,9 @@ function handleError(res, statusCode) {
 
 // Gets a list of Zones
 export function index(req, res) {
-  return Zone.find().populate('createdBy updatedBy', 'username').exec()
+  return Zone.find()
+    .populate('nodes')
+    .populate('createdBy updatedBy', 'username').exec()
     .then(respondWithResult(res))
     .catch(handleError(res));
 }

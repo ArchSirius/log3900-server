@@ -75,7 +75,9 @@ function handleError(res, statusCode) {
  * restriction: authenticated
  */
 exports.index = function(req, res) {
-  return Zone.find({}, '-salt -password').populate('createdBy updatedBy', 'username').exec()
+  return Zone.find({}, '-salt -password')
+    .populate('nodes')
+    .populate('createdBy updatedBy', 'username').exec()
     .then(zones => {
       zones.forEach((zone, index) => {
         zones[index].salt = undefined;
@@ -96,7 +98,7 @@ exports.index = function(req, res) {
  */
 exports.show = function(req, res) {
   return Zone.findById(req.params.id)
-    .populate('zones')
+    .populate('nodes')
     .populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(zone => {

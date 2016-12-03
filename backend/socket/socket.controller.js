@@ -416,6 +416,7 @@ module.exports = function(socket) {
 		return function (data) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
+			var error;
 
 			if (!zoneId) {
 				return;
@@ -454,6 +455,11 @@ module.exports = function(socket) {
 								localNode.updatedAt = time;
 
 								// Prepare update
+								localNode.save()
+								.catch(err => {
+									error = err;
+									console.log('SERVER ERROR in edit:nodes', error);
+								});
 								updatedNodes.push(minifyNodeStrict(localNode));
 
 							}
@@ -464,6 +470,10 @@ module.exports = function(socket) {
 					// Save and emit
 					zone.save()
 					.then(() => {
+
+						if (error) {
+							throw error;
+						}
 
 						socket.broadcast.to(zoneId).emit('edit:nodes', {
 							user: activeUser,
@@ -553,8 +563,9 @@ module.exports = function(socket) {
 						node.zone = zone;
 						node.createdBy = activeUser._id;
 						node.updatedBy = activeUser._id;
-
-						zone.nodes.push(new Node(node));
+						const newNode = new Node(node);
+						newNode.save();
+						zone.nodes.push(newNode);
 
 					});
 
@@ -710,7 +721,7 @@ module.exports = function(socket) {
 				return;
 			}
 
-			const newLock = lockCtrl.lockNodes(userNodes, activeUser._id);
+			const newLock = lockCtrl.lockNodes(data.nodes, activeUser._id);
 			// Emit
 			socket.broadcast.to(zoneId).emit('lock:nodes', {
 				user: activeUser,
@@ -744,7 +755,7 @@ module.exports = function(socket) {
 				return;
 			}
 
-			const newUnlock = lockCtrl.unlockNodes(userNodes, activeUser._id);
+			const newUnlock = lockCtrl.unlockNodes(data.nodes, activeUser._id);
 			// Emit
 			socket.broadcast.to(zoneId).emit('unlock:nodes', {
 				nodes: newUnlock,
