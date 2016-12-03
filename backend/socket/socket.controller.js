@@ -308,8 +308,8 @@ module.exports = function(socket) {
 								data: {
 									users: usersCtrl.getZoneUsers(zoneId),
 									nodes: zone.nodes,
-									lockedNodes: lockCtrl.getZoneLocks(zoneId),
-									assignedStartpoints: lockCtrl.getAssignedStartpoints(zoneId)
+									lockedNodes: lockCtrl.getZoneLocks(zone),
+									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone)
 								},
 								time: time
 							});
@@ -381,7 +381,7 @@ module.exports = function(socket) {
 					success: true,
 					time: time
 				});
-				const nodeId = lockCtrl.unassignUserStartpoint(zoneId, activeUser._id);
+				const nodeId = lockCtrl.unassignUserStartpoint(activeUser._id);
 				if (nodeId) {
 					socket.broadcast.to(zoneId).emit('unassign:startpoint', {
 						user: activeUser,
@@ -434,7 +434,7 @@ module.exports = function(socket) {
 							// Find matching node
 							if (String(localNode._id) === String(userNode._id)) {
 								// Edit if node is not locked
-								if (lockCtrl.hasAccess(zone, localNode, activeUser._id)) {
+								if (lockCtrl.hasAccess(localNode._id, activeUser._id)) {
 
 									// _id and type cannot change
 									// Update position
@@ -641,7 +641,7 @@ module.exports = function(socket) {
 							// Find matching node
 							if (String(localNode._id) === String(userNode._id)) {
 								// Delete if node is not locked
-								if (lockCtrl.hasAccess(zone, localNode, activeUser._id)) {
+								if (lockCtrl.hasAccess(localNode._id, activeUser._id)) {
 
 									// Delete
 									zone.nodes.splice(i, 1);
@@ -726,7 +726,7 @@ module.exports = function(socket) {
 				// Apply changes if zone exists
 				if (zone) {
 					const userNodes = data.nodes;
-					const newLock = lockCtrl.lockNodes(zone, userNodes, activeUser._id);
+					const newLock = lockCtrl.lockNodes(userNodes, activeUser._id);
 					// Save and emit
 					socket.broadcast.to(zoneId).emit('lock:nodes', {
 						user: activeUser,
@@ -782,7 +782,7 @@ module.exports = function(socket) {
 				// Apply changes if zone exists
 				if (zone) {
 					const userNodes = data.nodes;
-					const newUnlock = lockCtrl.unlockNodes(zone, userNodes, activeUser._id);
+					const newUnlock = lockCtrl.unlockNodes(userNodes, activeUser._id);
 					// Save and emit
 					socket.broadcast.to(zoneId).emit('unlock:nodes', {
 						nodes: newUnlock,
