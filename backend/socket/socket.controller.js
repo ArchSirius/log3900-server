@@ -367,6 +367,7 @@ module.exports = function(socket) {
 			var zoneId;
 			if (usersCtrl.getZoneId(activeUser._id)) {
 				zoneId = usersCtrl.getZoneId(activeUser._id);
+				data.zoneId = zoneId;
 			}
 			else if (data && data.zoneId) {
 				zoneId = data.zoneId;
