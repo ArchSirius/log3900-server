@@ -911,7 +911,7 @@ module.exports = function(socket) {
 	 */
 	const getNodeIndex = function(nodes, nodeId) {
 		for (var i = 0; i < nodes.length; ++i) {
-			if (nodes[i]._id.toString() === nodeId.toString()) {
+			if (nodeId && nodes[i]._id.toString() === nodeId.toString()) {
 				return i;
 			}
 		}
