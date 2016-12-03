@@ -10,6 +10,7 @@
 'use strict';
 
 var _    = require('lodash');
+var Node = require('../node/node.model');
 var Zone = require('./zone.model');
 
 function respondWithResult(res, statusCode) {
@@ -94,7 +95,9 @@ exports.index = function(req, res) {
  * restriction: authenticated
  */
 exports.show = function(req, res) {
-  return Zone.findById(req.params.id).populate('createdBy updatedBy', 'username').exec()
+  return Zone.findById(req.params.id)
+    .populate('zones')
+    .populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(zone => {
       if (zone) {
@@ -126,10 +129,19 @@ exports.create = function(req, res) {
   const userId = req.decoded._id;
   req.body.createdBy = userId;
   req.body.updatedBy = userId;
+  const nodes = req.body.nodes;
   if (req.body.nodes) {
-    req.body.nodes.forEach(node => {
+    delete req.body.nodes;
+  }
+  var zone = new Zone(req.body);
+  if (nodes) {
+    if (!zone.nodes) {
+      zone.nodes = [];
+    }
+    nodes.forEach(node => {
       node.createdBy = userId;
       node.updatedBy = userId;
+      zone.nodes.push(new Node(node));
     });
   }
   if (req.body.private && ! req.body.password) {
@@ -139,7 +151,7 @@ exports.create = function(req, res) {
       data: {}
     });
   }
-  return Zone.create(req.body)
+  return zone.save()
     .then(zone => {
       zone.salt = undefined;
       zone.password = undefined;
@@ -168,7 +180,9 @@ exports.update = function(req, res) {
       node.updatedBy = userId;
     });
   }
-  return Zone.findById(req.params.id).populate('createdBy updatedBy', 'username').exec()
+  return Zone.findById(req.params.id)
+    .populate('nodes')
+    .populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(zone => {
       if (zone && !zone.private && req.body.private && !req.body.password) {

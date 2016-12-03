@@ -11,6 +11,7 @@
 'use strict';
 
 import jsonpatch from 'fast-json-patch';
+import Node from './node.model';
 import Zone from './zone.model';
 
 function respondWithResult(res, statusCode) {
@@ -72,7 +73,9 @@ export function index(req, res) {
 
 // Gets a single Zone from the DB
 export function show(req, res) {
-  return Zone.findById(req.params.id).populate('createdBy updatedBy', 'username').exec()
+  return Zone.findById(req.params.id)
+  .populate('nodes')
+  .populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(respondWithResult(res))
     .catch(handleError(res));
@@ -91,6 +94,7 @@ export function upsert(req, res) {
     delete req.body._id;
   }
   return Zone.findOneAndUpdate({_id: req.params.id}, req.body, {upsert: true, setDefaultsOnInsert: true, runValidators: true})
+    .populate('nodes')
     .populate('createdBy updatedBy', 'username').exec()
 
     .then(respondWithResult(res))

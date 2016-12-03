@@ -544,6 +544,9 @@ module.exports = function(socket) {
 
 					const index = zone.nodes.length;
 					const userNodes = data.nodes;
+					if (userNodes.length > 0 && !zone.nodes) {
+						zone.nodes = [];
+					}
 					// Iterate over user nodes
 					userNodes.forEach(node => {
 
