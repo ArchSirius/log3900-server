@@ -1,4 +1,5 @@
 const User    = require('../app/user/user.model');
+const Node    = require('../app/node/node.model');
 const Zone    = require('../app/zone/zone.model');
 const _       = require('lodash');
 const msgCtrl = require('./socket.message.controller');
@@ -276,7 +277,7 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = data.zoneId;
 			if (zoneId) {
-				Zone.findById(zoneId).exec()
+				Zone.findById(zoneId).populate('nodes').exec()
 				.then(zone => {
 					if (zone) {
 						if (zone.private && !zone.authenticate(data.password)) {
@@ -411,7 +412,7 @@ module.exports = function(socket) {
 			const zoneId = usersCtrl.getZoneId(userId);
 
 			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				// Apply changes if zone exists
 				if (zone) {
@@ -526,7 +527,7 @@ module.exports = function(socket) {
 			const zoneId = usersCtrl.getZoneId(userId);
 
 			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				// Apply changes if zone exists
 				if (zone) {
@@ -618,7 +619,7 @@ module.exports = function(socket) {
 			const zoneId = usersCtrl.getZoneId(userId);
 
 			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				// Apply changes if zone exists
 				if (zone) {
@@ -715,7 +716,7 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(userId);
 			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				// Apply changes if zone exists
 				if (zone) {
@@ -771,7 +772,7 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(userId);
 			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				// Apply changes if zone exists
 				if (zone) {
@@ -869,7 +870,7 @@ module.exports = function(socket) {
 				return;
 			}
 			const simulationTime = (time - tmp.simulation.start) / 1000;
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				if (!zone) {
 					return;

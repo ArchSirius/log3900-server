@@ -5,60 +5,6 @@ var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 var Schema       = mongoose.Schema;
 
-var NodeSchema = new Schema({
-  type: {
-    type: String,
-    enum: [ 'cylindre', 'depart', 'ligne', 'mur', 'robot', 'segment', 'table' ],
-    required: true
-  },
-  position: {
-    x: {
-      type: Number,
-      default: 0.0
-    },
-    y: {
-      type: Number,
-      default: 0.0
-    },
-    z: {
-      type: Number,
-      default: 0.0
-    }
-  },
-  angle: {
-    type: Number,
-    default: 0.0
-  },
-  scale: {
-    x: {
-      type: Number,
-      default: 1.0
-    },
-    y: {
-      type: Number,
-      default: 1.0
-    },
-    z: {
-      type: Number,
-      default: 1.0
-    }
-  },
-  parent: {
-    type: Schema.ObjectId,
-    default: null
-  },
-  createdBy: {
-    type: Schema.ObjectId,
-    ref: 'User'
-  },
-  updatedBy: {
-    type: Schema.ObjectId,
-    ref: 'User'
-  }
-}, {
-  timestamps: true
-});
-
 var ZoneSchema = new Schema({
   name: {
     type: String,
@@ -81,10 +27,6 @@ var ZoneSchema = new Schema({
       default: 0
     }
   },
-  nodes: {
-    type: [ NodeSchema ],
-    default: []
-  },
   createdBy: {
     type: Schema.ObjectId,
     ref: 'User'
@@ -94,7 +36,19 @@ var ZoneSchema = new Schema({
     ref: 'User'
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+/**
+ * Virtuals
+ */
+
+ZoneSchema.virtual('nodes', {
+  ref: 'Node',
+  localField: '_id',
+  foreignField: 'zone'
 });
 
 /**
