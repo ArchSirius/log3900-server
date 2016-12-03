@@ -22,7 +22,7 @@ module.exports = function (socket) {
 	});
 
 	socket.on('init:chat', controller.initChat(usersCtrl));
-	socket.on('disconnect', controller.disconnect(usersCtrl));
+	socket.on('disconnect', controller.disconnect(usersCtrl, lockCtrl));
 	socket.on('join:chatroom', controller.joinChatroom(usersCtrl));
 	socket.on('leave:chatroom', controller.leaveChatroom(usersCtrl));
 	socket.on('send:group:message', controller.sendGroupMessage(usersCtrl));
@@ -32,6 +32,8 @@ module.exports = function (socket) {
 
 	socket.on('join:zone', controller.joinZone(usersCtrl, lockCtrl));
 	socket.on('leave:zone', controller.leaveZone(usersCtrl, lockCtrl));
+	socket.on('assign:startpoint', controller.assignStartpoint(usersCtrl, lockCtrl))
+	socket.on('unassign:startpoint', controller.unassignStartpoint(usersCtrl, lockCtrl))
 	socket.on('edit:nodes', controller.editNodes(usersCtrl, lockCtrl));
 	socket.on('create:nodes', controller.createNodes(usersCtrl));
 	socket.on('delete:nodes', controller.deleteNodes(usersCtrl, lockCtrl));

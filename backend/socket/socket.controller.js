@@ -70,12 +70,13 @@ module.exports = function(socket) {
 	/**
 	 * Disconnect a user and send notifications in socket rooms with events 'user:left' and 'leave:zone'.
 	 */
-	const disconnect = function(usersCtrl) {
+	const disconnect = function(usersCtrl, lockCtrl) {
 		return function () {
 			const time = new Date().getTime();
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
 			const isDeleted = usersCtrl.leave(socket, activeUser._id);
 			if (isDeleted) {
-				leaveZone(usersCtrl)();
+				leaveZone(usersCtrl, lockCtrl)({ zoneId: zoneId });
 				const chatrooms = usersCtrl.getChatrooms(activeUser._id);
 				chatrooms.forEach(room => {
 					socket.broadcast.to(room).emit('user:left', {
@@ -272,7 +273,7 @@ module.exports = function(socket) {
 	/**
 	 * Set a user's active zone, make it join the zone's socket room, send notification in socket room with event 'join:zone'.
 	 * Sends feedback to caller with event 'joined:zone'.
-	 * Tries to assign a starting point to the caller and send with 'assign:startpoint' and 'assigned:startpoint'.
+	 * If set, calls assignStartpoint.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.zoneId - The unique _id of a zone.
 	 * @param {boolean} [data.assignStartpoint=false] - Whether to assign try to assign a startpoint or not.
@@ -315,19 +316,7 @@ module.exports = function(socket) {
 								time: time
 							});
 							if (data.assignStartpoint) {
-								const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, activeUser._id);
-								if (assignedStartpoint) {
-									socket.broadcast.to(zoneId).emit('assign:startpoint', {
-										user: activeUser,
-										nodeId: assignedStartpoint,
-										time: time
-									});
-									socket.emit('assigned:startpoint', {
-										success: true,
-										nodeId: assignedStartpoint,
-										time: time
-									});
-								}
+								assignStartpoint(usersCtrl, lockCtrl)();
 							}
 							joinChatroom(usersCtrl)({ room: zoneId });
 						}
@@ -366,11 +355,13 @@ module.exports = function(socket) {
 	 * Remove a user's active zone, make it leave the zone's socket room, send notification in socket room with event 'leave:zone'.
 	 * Sends feedback to caller with event 'left:zone'.
 	 * Unassign starting point if needed and send 'unassign:startpoint'.
+	 * @param {Object} [data] - Contains internal informations.
+	 * @param {String} [data.zoneId] - The zone _id, if usersCtrl has deleted the information.
 	 */
 	const leaveZone = function(usersCtrl, lockCtrl) {
-		return function () {
+		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(activeUser._id);
+			const zoneId = usersCtrl.getZoneId(activeUser._id) || data ? data.zoneId : undefined;
 			if (zoneId) {
 				usersCtrl.unregisterZone(activeUser._id, zoneId);
 				usersCtrl.leaveChatroom(activeUser._id, zoneId);
@@ -382,20 +373,73 @@ module.exports = function(socket) {
 					success: true,
 					time: time
 				});
-				const nodeId = lockCtrl.unassignUserStartpoint(activeUser._id);
-				if (nodeId) {
-					socket.broadcast.to(zoneId).emit('unassign:startpoint', {
-						user: activeUser,
-						nodeId: nodeId,
-						time: time
-					});
-				}
+				unassignStartpoint(usersCtrl, lockCtrl)(data);
 				socket.leave(zoneId);
 			}
 			else {
 				socket.emit('left:zone', {
 					success: false,
 					message: 'Aucune zone active.',
+					time: time
+				});
+			}
+		};
+	};
+
+	/**
+	 * Try to assign a starting point to the caller and send with 'assign:startpoint' and 'assigned:startpoint'.
+	 */
+	const assignStartpoint = function(usersCtrl, lockCtrl) {
+		return function () {
+			const time = new Date().getTime();
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			Zone.findById(zoneId).exec()
+			.then(zone => {
+				if (zone) {
+					const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, activeUser._id);
+					if (assignedStartpoint) {
+						socket.broadcast.to(zoneId).emit('assign:startpoint', {
+							user: activeUser,
+							nodeId: assignedStartpoint,
+							time: time
+						});
+						socket.emit('assigned:startpoint', {
+							success: true,
+							nodeId: assignedStartpoint,
+							time: time
+						});
+					}
+				}
+			});
+		};
+	};
+
+	/**
+	 * Unassign starting point if needed and send 'unassign:startpoint'.
+	 * @param {string} [user=activeUser._id] - The user _id to unassign, default is self.
+	 * @param {Object} [data] - Contains internal informations.
+	 * @param {String} [data.zoneId] - The zone _id, if usersCtrl has deleted the information.
+	 * @param {String} [data.userId] - The user _id, if deletion.
+	 */
+	const unassignStartpoint = function(usersCtrl, lockCtrl) {
+		return function (data) {
+			const time = new Date().getTime();
+			const zoneId = usersCtrl.getZoneId(activeUser._id) || data ? data.zoneId : undefined;
+
+			var unassignUserId;
+			if (data && data.userId) {
+				unassignUserId = data.userId;
+			}
+			else {
+				unassignUserId = activeUser._id;
+			}
+
+			const nodeId = lockCtrl.unassignUserStartpoint(unassignUserId);
+			if (nodeId) {
+				socket.broadcast.to(zoneId).emit('unassign:startpoint', {
+					user: usersCtrl.getUser(unassignUserId) || activeUser,
+					nodeId: nodeId,
 					time: time
 				});
 			}
@@ -632,6 +676,7 @@ module.exports = function(socket) {
 	/**
 	 * Delete a zone's nodes and send request in socket room with event 'delete:nodes'.
 	 * Sends feedback to caller with event 'deleted:nodes'.
+	 * Unassign starting point if needed and send 'unassign:startpoint'.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {Object[]} data.nodes - The nodes to delete.
 	 * @param {string} data.nodes[]._id - The unique _id of a node.
@@ -668,6 +713,13 @@ module.exports = function(socket) {
 				return deletedNodes;
 			})
 			.then(deletedNodes => {
+				// Unassign
+				deletedNodes.forEach(node => {
+					var assignedUserId = lockCtrl.unassignStartpointUser(node._id);
+					if (assignedUserId) {
+						unassignStartpoint(usersCtrl, lockCtrl)({ userId: assignedUserId });
+					}
+				});
 				// Emit
 				socket.broadcast.to(zoneId).emit('delete:nodes', {
 					user: activeUser,
@@ -930,6 +982,8 @@ module.exports = function(socket) {
 		sendMessage: sendMessage,
 		joinZone: joinZone,
 		leaveZone: leaveZone,
+		assignStartpoint: assignStartpoint,
+		unassignStartpoint: unassignStartpoint,
 		editNodes: editNodes,
 		createNodes: createNodes,
 		deleteNodes: deleteNodes,

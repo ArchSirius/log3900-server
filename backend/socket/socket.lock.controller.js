@@ -164,9 +164,23 @@ exports.assignUserStartpoint = function(node, userId) {
 };
 
 /**
+ * Unassign a starting point.
+ * @param {string} nodeId - The unique _id of a node.
+ * @param {string} The user _id, if was assigned.
+ */
+exports.unassignStartpointUser = function(nodeId) {
+	if (assignedStartNodes[nodeId.toString()]) {
+		const userId = assignedStartNodes[nodeId.toString()];
+		delete assignedStartNodes[nodeId.toString()];
+		return userId;
+	}
+	return undefined;
+};
+
+/**
  * Unassign a user from his starting point.
  * @param {string} userId - The unique _id of a user.
- * @param {string} The node _id, if was assigned.
+ * @returns {string} The node _id, if was assigned.
  */
 exports.unassignUserStartpoint = function(userId) {
 	const nodeId = this.getUserStartpoint(userId);
