@@ -417,6 +417,10 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
+			if (!zoneId) {
+				return;
+			}
+
 			// Find the edited zone
 			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
@@ -528,6 +532,10 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
+			if (!zoneId) {
+				return;
+			}
+
 			// Find the edited zone
 			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
@@ -619,6 +627,10 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
+			if (!zoneId) {
+				return;
+			}
+
 			// Convert to ObjectId
 			const ids = data.nodes.map(node => {
 				try {
@@ -690,6 +702,11 @@ module.exports = function(socket) {
 		return function (data) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
+
 			// Find the edited zone
 			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
@@ -746,6 +763,11 @@ module.exports = function(socket) {
 		return function (data) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
+
 			// Find the edited zone
 			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
@@ -799,6 +821,11 @@ module.exports = function(socket) {
 		return function (data) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
+
 			const position = {
 				x: Number(data.position.x) || 0.0,
 				y: Number(data.position.y) || 0.0,
@@ -821,6 +848,11 @@ module.exports = function(socket) {
 	const startSimulation = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
+
+			if (!zoneId) {
+				return;
+			}
+
 			socket.broadcast.to(usersCtrl.getZoneId(activeUser._id)).emit('start:simulation', {
 				user: activeUser,
 				time: time
@@ -836,6 +868,10 @@ module.exports = function(socket) {
 		return function () {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
 
 			socket.broadcast.to(usersCtrl.getZoneId(activeUser._id)).emit('end:simulation', {
 				user: activeUser,
