@@ -72,6 +72,9 @@ module.exports = function(socket) {
 	 */
 	const disconnect = function(usersCtrl, lockCtrl) {
 		return function () {
+			if (!activeUser) {
+				return;
+			}
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 			const isDeleted = usersCtrl.leave(socket, activeUser._id);
@@ -361,7 +364,13 @@ module.exports = function(socket) {
 	const leaveZone = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(activeUser._id) || data ? data.zoneId : undefined;
+			var zoneId;
+			if (usersCtrl.getZoneId(activeUser._id)) {
+				zoneId = usersCtrl.getZoneId(activeUser._id);
+			}
+			else if (data && data.nodeId) {
+				zoneId = data.nodeId;
+			}
 			if (zoneId) {
 				usersCtrl.unregisterZone(activeUser._id, zoneId);
 				usersCtrl.leaveChatroom(activeUser._id, zoneId);
