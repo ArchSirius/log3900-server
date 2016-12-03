@@ -1,8 +1,9 @@
-const User    = require('../app/user/user.model');
-const Node    = require('../app/node/node.model');
-const Zone    = require('../app/zone/zone.model');
-const _       = require('lodash');
-const msgCtrl = require('./socket.message.controller');
+const User     = require('../app/user/user.model');
+const Node     = require('../app/node/node.model');
+const Zone     = require('../app/zone/zone.model');
+const _        = require('lodash');
+const msgCtrl  = require('./socket.message.controller');
+const ObjectId = require('mongoose').Types.ObjectId;
 
 module.exports = function(socket) {
 
@@ -618,85 +619,59 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
-			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
-			.then(zone => {
-				// Apply changes if zone exists
-				if (zone) {
-
-					const userNodes = data.nodes;
-					var deletedNodes = [];
-					// Iterate over user nodes
-					userNodes.forEach(userNode => {
-
-						var localNode;
-						// Iterate over local nodes to find a match
-						for (var i = 0; i < zone.nodes.length; ++i) {
-							localNode = zone.nodes[i];
-							// Find matching node
-							if (String(localNode._id) === String(userNode._id)) {
-								// Delete if node is not locked
-								if (lockCtrl.hasAccess(localNode._id, activeUser._id)) {
-
-									// Delete
-									zone.nodes.splice(i, 1);
-
-									// Delete and prepare update
-									deletedNodes.push({ _id: localNode._id });
-
-								}
-							}
-						}
-
-					});
-
-					// Save and emit
-					zone.save()
-					.then(() => {
-
-						socket.broadcast.to(zoneId).emit('delete:nodes', {
-							user: activeUser,
-							nodes: deletedNodes,
-							time: time
-						});
-						socket.emit('deleted:nodes', {
-							success: true,
-							nodes: deletedNodes,
-							time: time
-						});
-
-					// Log performance
-					const end = new Date().getTime();
-					console.log('delete:nodes', deletedNodes.length + ' nodes in ' + (end - time) + ' ms');
-
-					})
-					// Catch model validation erors
-					.catch(error => {
-						socket.emit('deleted:nodes', {
-							success: false,
-							error: error,
-							nodes: userNodes,
-							time: time
-						});
-					});
-
+			// Convert to ObjectId
+			const ids = data.nodes.map(node => {
+				try {
+					if (lockCtrl.hasAccess(node._id, activeUser._id)) {
+						return new ObjectId(node._id);
+					}
 				}
-				// If zone does not exist, abort
-				else {
-					socket.emit('deleted:nodes', {
-						success: false,
-						message: 'Zone introuvable.',
-						nodes: data.nodes,
-						time: time
-					});
+				catch (error) {
+					console.log('SERVER ERROR in delete:nodes', error);
 				}
+			});
+
+			// Delete the nodes
+			Node.find({ _id: { $in: ids } }).exec()
+			.then(nodes => {
+				var deletedNodes = [];
+				nodes.forEach(node => {
+					node.remove();
+					deletedNodes.push({ _id: node._id });
+				});
+				return deletedNodes;
+			})
+			.then(deletedNodes => {
+				// Emit
+				socket.broadcast.to(zoneId).emit('delete:nodes', {
+					user: activeUser,
+					nodes: deletedNodes,
+					time: time
+				});
+				socket.emit('deleted:nodes', {
+					success: true,
+					nodes: deletedNodes,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('delete:nodes', deletedNodes.length + ' nodes in ' + (end - time) + ' ms');
+
+				// Update the zone
+				Zone.findById(zoneId).populate('nodes').exec()
+				.then(zone => {
+					zone.updatedBy = activeUser._id;
+					zone.updatedAt = time;
+					zone.save();
+				});
 			})
 			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
 			.catch(error => {
 				socket.emit('deleted:nodes', {
 					success: false,
 					error: error,
-					nodes: data.nodes,
+					nodes: deletedNodes,
 					time: time
 				});
 				console.log('SERVER ERROR in delete:nodes', error);
