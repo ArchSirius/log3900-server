@@ -707,48 +707,21 @@ module.exports = function(socket) {
 				return;
 			}
 
-			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
-			.then(zone => {
-				// Apply changes if zone exists
-				if (zone) {
-					const userNodes = data.nodes;
-					const newLock = lockCtrl.lockNodes(userNodes, activeUser._id);
-					// Save and emit
-					socket.broadcast.to(zoneId).emit('lock:nodes', {
-						user: activeUser,
-						nodes: newLock,
-						time: time
-					});
-					socket.emit('locked:nodes', {
-						success: true,
-						nodes: newLock,
-						time: time
-					});
-					// Log performance
-					const end = new Date().getTime();
-					console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
-				}
-				// If zone does not exist, abort
-				else {
-					socket.emit('locked:nodes', {
-						success: false,
-						message: 'Zone introuvable.',
-						nodes: data.nodes,
-						time: time
-					});
-				}
-			})
-			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
-			.catch(error => {
-				socket.emit('locked:nodes', {
-					success: false,
-					error: error,
-					nodes: data.nodes,
-					time: time
-				});
-				console.log('SERVER ERROR in lock:nodes', error);
+			const newLock = lockCtrl.lockNodes(userNodes, activeUser._id);
+			// Emit
+			socket.broadcast.to(zoneId).emit('lock:nodes', {
+				user: activeUser,
+				nodes: newLock,
+				time: time
 			});
+			socket.emit('locked:nodes', {
+				success: true,
+				nodes: newLock,
+				time: time
+			});
+			// Log performance
+			const end = new Date().getTime();
+			console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
 		};
 	};
 
@@ -768,47 +741,20 @@ module.exports = function(socket) {
 				return;
 			}
 
-			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
-			.then(zone => {
-				// Apply changes if zone exists
-				if (zone) {
-					const userNodes = data.nodes;
-					const newUnlock = lockCtrl.unlockNodes(userNodes, activeUser._id);
-					// Save and emit
-					socket.broadcast.to(zoneId).emit('unlock:nodes', {
-						nodes: newUnlock,
-						time: time
-					});
-					socket.emit('unlocked:nodes', {
-						success: true,
-						nodes: newUnlock,
-						time: time
-					});
-					// Log performance
-					const end = new Date().getTime();
-					console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
-				}
-				// If zone does not exist, abort
-				else {
-					socket.emit('unlocked:nodes', {
-						success: false,
-						message: 'Zone introuvable.',
-						nodes: data.nodes,
-						time: time
-					});
-				}
-			})
-			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
-			.catch(error => {
-				socket.emit('unlocked:nodes', {
-					success: false,
-					error: error,
-					nodes: data.nodes,
-					time: time
-				});
-				console.log('SERVER ERROR in unlock:nodes', error);
+			const newUnlock = lockCtrl.unlockNodes(userNodes, activeUser._id);
+			// Emit
+			socket.broadcast.to(zoneId).emit('unlock:nodes', {
+				nodes: newUnlock,
+				time: time
 			});
+			socket.emit('unlocked:nodes', {
+				success: true,
+				nodes: newUnlock,
+				time: time
+			});
+			// Log performance
+			const end = new Date().getTime();
+			console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
 		};
 	};
 
