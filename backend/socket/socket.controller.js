@@ -427,34 +427,30 @@ module.exports = function(socket) {
 					// Iterate over user nodes
 					userNodes.forEach(userNode => {
 
-						var localNode;
-						// Iterate over local nodes to find a match
-						for (var i = 0; i < zone.nodes.length; ++i) {
-							localNode = zone.nodes[i];
-							// Find matching node
-							if (String(localNode._id) === String(userNode._id)) {
-								// Edit if node is not locked
-								if (lockCtrl.hasAccess(localNode._id, activeUser._id)) {
+						const i = getNodeIndex(zone.nodes, userNode._id);
+						if (i > -1) {
+							var localNode = zone.nodes[i];
+							// Edit if node is not locked
+							if (lockCtrl.hasAccess(localNode._id, activeUser._id)) {
 
-									// _id and type cannot change
-									// Update position
-									localNode.position = _.extend(localNode.position, userNode.position);
-									// Update angle
-									if (userNode.angle) {
-										localNode.angle = userNode.angle;
-									}
-									// Update angle
-									localNode.scale = _.extend(localNode.scale, userNode.scale);
-									// parent cannot change
-									// Update updatedBy
-									localNode.updatedBy = activeUser._id;
-									// Update timestamp
-									localNode.updatedAt = time;
-
-									// Prepare update
-									updatedNodes.push(minifyNodeStrict(localNode));
-
+								// _id and type cannot change
+								// Update position
+								localNode.position = _.extend(localNode.position, userNode.position);
+								// Update angle
+								if (userNode.angle) {
+									localNode.angle = userNode.angle;
 								}
+								// Update angle
+								localNode.scale = _.extend(localNode.scale, userNode.scale);
+								// parent cannot change
+								// Update updatedBy
+								localNode.updatedBy = activeUser._id;
+								// Update timestamp
+								localNode.updatedAt = time;
+
+								// Prepare update
+								updatedNodes.push(minifyNodeStrict(localNode));
+
 							}
 						}
 
@@ -934,6 +930,22 @@ module.exports = function(socket) {
 			createdBy: node.createdBy,
 			updatedBy: node.updatedBy
 		};
+	};
+
+	/**
+	 * Find the index of a node in a nodes array by its id.
+	 * @private
+	 * @param {Object[]} nodes - The array of nodes.
+	 * @param {ObjectId|string} nodeId - The _id of a node.
+	 * @returns {number} The index of a node in a nodes array.
+	 */
+	const getNodeIndex = function(nodes, nodeId) {
+		for (var i = 0; i < nodes.length; ++i) {
+			if (nodes[i]._id.toString() === nodeId.toString()) {
+				return i;
+			}
+		}
+		return -1;
 	};
 
 	return {
