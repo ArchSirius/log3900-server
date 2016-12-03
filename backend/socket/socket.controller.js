@@ -394,7 +394,7 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
-			Zone.findById(zoneId).exec()
+			Zone.findById(zoneId).populate('nodes').exec()
 			.then(zone => {
 				if (zone) {
 					const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, activeUser._id);
