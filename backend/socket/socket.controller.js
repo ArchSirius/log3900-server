@@ -368,8 +368,8 @@ module.exports = function(socket) {
 			if (usersCtrl.getZoneId(activeUser._id)) {
 				zoneId = usersCtrl.getZoneId(activeUser._id);
 			}
-			else if (data && data.nodeId) {
-				zoneId = data.nodeId;
+			else if (data && data.zoneId) {
+				zoneId = data.zoneId;
 			}
 			if (zoneId) {
 				usersCtrl.unregisterZone(activeUser._id, zoneId);
