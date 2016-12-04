@@ -164,7 +164,7 @@ exports.create = function(req, res) {
     }
   });
   while (nbStart < 4) {
-    zone.nodes.push(newNode = new Node({
+    zone.nodes.push(new Node({
       zone: zone,
       type: 'depart',
       position: { x: nbStart, y: nbStart },
