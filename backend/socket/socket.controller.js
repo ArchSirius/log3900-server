@@ -239,7 +239,7 @@ module.exports = function(socket) {
 		msgCtrl.fetchPrivateMessages(activeUser._id, data.userId, messages => {
 			socket.emit('get:private:messages', {
 				success: true,
-				to: data.userId , // For Louis
+				to: activeUser._id,	// For Louis
 				messages: messages,
 				time: new Date().getTime()
 			});
@@ -315,8 +315,7 @@ module.exports = function(socket) {
 									users: usersCtrl.getZoneUsers(zoneId),
 									nodes: zone.nodes,
 									lockedNodes: lockCtrl.getZoneLocks(zone),
-									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone),
-									simulation: lockCtrl.isInSimulation(zoneId)
+									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone)
 								},
 								time: time
 							});
@@ -377,6 +376,13 @@ module.exports = function(socket) {
 			}
 
 			if (zoneId) {
+				const unlockedNodes = lockCtrl.unlockAllUserNodes(activeUser._id);
+				if (unlockedNodes && unlockedNodes.length > 0) {
+					unlockNodes(usersCtrl, lockCtrl)({
+						nodes: unlockedNodes,
+						dry: true
+					});
+				}
 				usersCtrl.unregisterZone(activeUser._id, zoneId);
 				usersCtrl.leaveChatroom(activeUser._id, zoneId);
 				socket.broadcast.to(zoneId).emit('leave:zone', {
@@ -388,13 +394,6 @@ module.exports = function(socket) {
 					time: time
 				});
 				socket.leave(zoneId);
-				const unlockedNodes = lockCtrl.unlockAllUserNodes(activeUser._id);
-				if (unlockedNodes && unlockedNodes.length > 0) {
-					unlockNodes(usersCtrl, lockCtrl)({
-						nodes: unlockedNodes,
-						dry: true
-					});
-				}
 			}
 			else {
 				socket.emit('left:zone', {
@@ -831,6 +830,9 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
+			if (!zoneId) {
+				return;
+			}
 			var newUnlock = [];
 			if (data.dry) {
 				newUnlock = data.nodes;
@@ -887,7 +889,7 @@ module.exports = function(socket) {
 	/**
 	 * Start a simulation and send request in socket room with event 'start:simulation'.
 	 */
-	const startSimulation = function(usersCtrl, lockCtrl) {
+	const startSimulation = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
@@ -900,7 +902,6 @@ module.exports = function(socket) {
 				user: activeUser,
 				time: time
 			});
-			lockCtrl.setSimulation(zoneId, true);
 			tmp.simulation = { start: time };
 		};
 	};
@@ -908,7 +909,7 @@ module.exports = function(socket) {
 	/**
 	 * End a simulation and send request in socket room with event 'end:simulation'.
 	 */
-	const endSimulation = function(usersCtrl, lockCtrl) {
+	const endSimulation = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
@@ -921,7 +922,6 @@ module.exports = function(socket) {
 				user: activeUser,
 				time: time
 			});
-			lockCtrl.setSimulation(zoneId, false);
 			if (!tmp.simulation || !tmp.simulation.start) {
 				return;
 			}
