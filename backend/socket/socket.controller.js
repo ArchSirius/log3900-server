@@ -239,6 +239,7 @@ module.exports = function(socket) {
 		msgCtrl.fetchPrivateMessages(activeUser._id, data.activeUser._id, messages => {
 			socket.emit('get:private:messages', {
 				success: true,
+				to: data.activeUser._id,
 				messages: messages,
 				time: new Date().getTime()
 			});
