@@ -95,6 +95,22 @@ exports.unlockNodes = function(nodes, userId) {
 };
 
 /**
+ * Unlock all nodes owned by a user.
+ * @param {ObjectId|string} userId - The userId.
+ * @returns {Object[]} The successfully unlocked nodes.
+ */
+exports.unlockAllUserNodes = function(userId) {
+	var newUnlock = [];
+	for (node in lock) {
+		if (lock[node] === userId.toString()) {
+			newUnlock.push({ _id: node });
+			delete lock[node];
+		}
+	}
+	return newUnlock;
+};
+
+/**
  * Return locked nodes of a zone.
  * @param {Object} zone - The target zone.
  * @returns {Object[]} The array of locked nodes.

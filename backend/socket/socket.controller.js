@@ -239,7 +239,7 @@ module.exports = function(socket) {
 		msgCtrl.fetchPrivateMessages(activeUser._id, data.userId, messages => {
 			socket.emit('get:private:messages', {
 				success: true,
-				to: data.userId , // For Louis
+				to: data.userId, // For Louis
 				messages: messages,
 				time: new Date().getTime()
 			});
@@ -377,6 +377,13 @@ module.exports = function(socket) {
 			}
 
 			if (zoneId) {
+				const unlockedNodes = lockCtrl.unlockAllUserNodes(activeUser._id);
+				if (unlockedNodes && unlockedNodes.length > 0) {
+					unlockNodes(usersCtrl, lockCtrl)({
+						nodes: unlockedNodes,
+						dry: true
+					});
+				}
 				usersCtrl.unregisterZone(activeUser._id, zoneId);
 				usersCtrl.leaveChatroom(activeUser._id, zoneId);
 				socket.broadcast.to(zoneId).emit('leave:zone', {
@@ -817,6 +824,7 @@ module.exports = function(socket) {
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {Object[]} data.nodes - The nodes to unlock.
 	 * @param {string} nodes[]._id - The unique _id of a node.
+	 * @param {boolean} [dry] - Verbose only. Used only from the server.
 	 */
 	const unlockNodes = function(usersCtrl, lockCtrl) {
 		return function (data) {
@@ -826,8 +834,13 @@ module.exports = function(socket) {
 			if (!zoneId) {
 				return;
 			}
-
-			const newUnlock = lockCtrl.unlockNodes(data.nodes, activeUser._id);
+			var newUnlock = [];
+			if (data.dry) {
+				newUnlock = data.nodes;
+			}
+			else {
+				newUnlock = lockCtrl.unlockNodes(data.nodes, activeUser._id);
+			}
 			// Emit
 			socket.broadcast.to(zoneId).emit('unlock:nodes', {
 				nodes: newUnlock,
