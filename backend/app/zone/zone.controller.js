@@ -143,6 +143,7 @@ exports.create = function(req, res) {
     delete req.body.nodes;
   }
   var zone = new Zone(req.body);
+  var newNodes = [];
   if (nodes) {
     if (!zone.nodes) {
       zone.nodes = [];
@@ -151,7 +152,9 @@ exports.create = function(req, res) {
       node.zone = zone;
       node.createdBy = userId;
       node.updatedBy = userId;
-      zone.nodes.push(new Node(node));
+      const newNode = new Node(node);
+      newNode.save();
+      newNodes.push(newNode);
     });
   }
   if (!zone.nodes) {
@@ -164,19 +167,22 @@ exports.create = function(req, res) {
     }
   });
   while (nbStart < 4) {
-    zone.nodes.push(new Node({
+    const newNode = new Node({
       zone: zone,
       type: 'depart',
       position: { x: nbStart, y: nbStart },
       createdBy: userId,
       updatedBy: userId
-    }));
+    });
+    newNode.save();
+    newNodes.push(newNode);
     ++nbStart;
   }
   return zone.save()
     .then(zone => {
       zone.salt = undefined;
       zone.password = undefined;
+      zone.nodes = JSON.parse(JSON.stringify(newNodes)); // Hack to avoid `Maximum call stack size exceeded`
       return zone;
     })
     .then(respondWithResult(res, 201))
