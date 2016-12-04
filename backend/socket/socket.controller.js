@@ -1,15 +1,17 @@
-const User    = require('../app/user/user.model');
-const Zone    = require('../app/zone/zone.model');
-const _       = require('lodash');
-const msgCtrl = require('./socket.message.controller');
+const User     = require('../app/user/user.model');
+const Node     = require('../app/node/node.model');
+const Zone     = require('../app/zone/zone.model');
+const _        = require('lodash');
+const msgCtrl  = require('./socket.message.controller');
+const ObjectId = require('mongoose').Types.ObjectId;
 
 module.exports = function(socket) {
 
 	/**
-	 * The _id of the user in this socket.
+	 * The active user in this socket.
 	 * @private
 	 */
-	const userId = socket.decoded_token._id;
+	var activeUser;
 
 	/**
 	 * Temporary information about the user session.
@@ -25,16 +27,21 @@ module.exports = function(socket) {
 	 */
 	const onInit = function(usersCtrl, user) {
 		const time = new Date().getTime();
+		activeUser = {
+			_id: user._id,
+			userId: user._id,
+			username: user.username
+		};
 		usersCtrl.join(socket, user);
 		socket.emit('init', {
-			user: usersCtrl.getUser(userId),
+			user: activeUser,
 			time: time
 		});
 		try {
-			msgCtrl.fetchPendingMessages(userId, pendingMessages => {
+			msgCtrl.fetchPendingMessages(activeUser._id, pendingMessages => {
 				if (pendingMessages && pendingMessages.messages) {
 					pendingMessages.messages.forEach(message => {
-						msgCtrl.emitMessage(message.createdBy._id, userId, message.text);
+						msgCtrl.emitMessage(message.createdBy._id, activeUser._id, message.text);
 					});
 				}
 			});
@@ -56,23 +63,27 @@ module.exports = function(socket) {
 			if (data && data.hasOwnProperty('value')) {
 				value = data.value;
 			}
-			usersCtrl.setChat(socket, userId, value);
+			usersCtrl.setChat(socket, activeUser._id, value);
 		};
 	};
 
 	/**
 	 * Disconnect a user and send notifications in socket rooms with events 'user:left' and 'leave:zone'.
 	 */
-	const disconnect = function(usersCtrl) {
+	const disconnect = function(usersCtrl, lockCtrl) {
 		return function () {
+			if (!activeUser) {
+				return;
+			}
 			const time = new Date().getTime();
-			const isDeleted = usersCtrl.leave(socket, userId);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+			const isDeleted = usersCtrl.leave(socket, activeUser._id);
 			if (isDeleted) {
-				leaveZone(usersCtrl)();
-				const chatrooms = usersCtrl.getChatrooms(userId);
+				leaveZone(usersCtrl, lockCtrl)({ zoneId: zoneId });
+				const chatrooms = usersCtrl.getChatrooms(activeUser._id);
 				chatrooms.forEach(room => {
 					socket.broadcast.to(room).emit('user:left', {
-						user: usersCtrl.getUser(userId),
+						user: activeUser,
 						time: time
 					});
 				});
@@ -90,12 +101,12 @@ module.exports = function(socket) {
 		return function (data) {
 			const time = new Date().getTime();
 			const room = data.room;
-			if (room && usersCtrl.joinChatroom(userId, room)) {
+			if (room && usersCtrl.joinChatroom(activeUser._id, room)) {
 				socket.join(room);
 				msgCtrl.fetchGroupMessages(room, messages => {
 					socket.broadcast.to(room).emit('user:join', {
 						room: room,
-						user: usersCtrl.getUser(userId),
+						user: activeUser,
 						time: time
 					});
 					socket.emit('joined:chatroom', {
@@ -129,10 +140,10 @@ module.exports = function(socket) {
 		return function (data) {
 			const time = new Date().getTime();
 			const room = data.room;
-			if (room && usersCtrl.leaveChatroom(userId, room)) {
+			if (room && usersCtrl.leaveChatroom(activeUser._id, room)) {
 				socket.leave(room);
 				socket.broadcast.to(room).emit('user:left', {
-					user: usersCtrl.getUser(userId),
+					user: activeUser,
 					time: time
 				});
 				socket.emit('left:chatroom', {
@@ -165,9 +176,9 @@ module.exports = function(socket) {
 			const text = data.text;
 			if (room) {
 				try {
-					msgCtrl.sendGroupMessage(usersCtrl, userId, socket, room, text);
+					msgCtrl.sendGroupMessage(usersCtrl, activeUser._id, socket, room, text);
 					socket.emit('send:group:message', {
-						from: usersCtrl.getUser(userId),
+						from: activeUser,
 						room: room,
 						text: text,
 						time: new Date().getTime()
@@ -194,14 +205,14 @@ module.exports = function(socket) {
 			const text = data.text;
 			const sendFeedback = function(recipient) {
 				socket.emit('send:private:message', {
-					from: usersCtrl.getUser(userId),
+					from: activeUser,
 					to: recipient,
 					text: text,
 					time: new Date().getTime()
 				});
 			};
 			try {
-				msgCtrl.sendPrivateMessage(usersCtrl, userId, to, text);
+				msgCtrl.sendPrivateMessage(usersCtrl, activeUser._id, to, text);
 				const recipient = usersCtrl.getUser(to);
 				if (recipient) {
 					sendFeedback(recipient);
@@ -222,10 +233,10 @@ module.exports = function(socket) {
 	/**
 	 * Fetch a private conversation's latest messages and send with event 'get:private:messages'.
 	 * @param {Object} data - The data received from the caller in JSON form.
-	 * @param {string} data.userId - The other user _id in the conversation.
+	 * @param {string} data.activeUser._id - The other user _id in the conversation.
 	 */
 	const getPrivateMessages = function(data) {
-		msgCtrl.fetchPrivateMessages(userId, data.userId, messages => {
+		msgCtrl.fetchPrivateMessages(activeUser._id, data.activeUser._id, messages => {
 			socket.emit('get:private:messages', {
 				success: true,
 				messages: messages,
@@ -247,13 +258,13 @@ module.exports = function(socket) {
 			const room = data.room;
 			if (room) {
 				socket.broadcast.to(room).emit('send:message', {
-					user: usersCtrl.getUser(userId),
+					user: activeUser,
 					room: room,
 					text: data.message,
 					time: time
 				});
 				socket.emit('send:message', {
-					user: usersCtrl.getUser(userId),
+					user: activeUser,
 					room: room,
 					text: data.message,
 					time: time
@@ -265,7 +276,7 @@ module.exports = function(socket) {
 	/**
 	 * Set a user's active zone, make it join the zone's socket room, send notification in socket room with event 'join:zone'.
 	 * Sends feedback to caller with event 'joined:zone'.
-	 * Tries to assign a starting point to the caller and send with 'assign:startpoint' and 'assigned:startpoint'.
+	 * If set, calls assignStartpoint.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {string} data.zoneId - The unique _id of a zone.
 	 * @param {boolean} [data.assignStartpoint=false] - Whether to assign try to assign a startpoint or not.
@@ -276,7 +287,7 @@ module.exports = function(socket) {
 			const time = new Date().getTime();
 			const zoneId = data.zoneId;
 			if (zoneId) {
-				Zone.findById(zoneId).exec()
+				Zone.findById(zoneId).populate('nodes').exec()
 				.then(zone => {
 					if (zone) {
 						if (zone.private && !zone.authenticate(data.password)) {
@@ -290,10 +301,10 @@ module.exports = function(socket) {
 						else {
 							zone.salt = undefined;
 							zone.password = undefined;
-							usersCtrl.registerZone(userId, zoneId);
+							usersCtrl.registerZone(activeUser._id, zoneId);
 							socket.join(zoneId);
 							socket.broadcast.to(zoneId).emit('join:zone', {
-								user: usersCtrl.getUser(userId),
+								user: activeUser,
 								time: time
 							});
 							socket.emit('joined:zone', {
@@ -302,26 +313,11 @@ module.exports = function(socket) {
 								data: {
 									users: usersCtrl.getZoneUsers(zoneId),
 									nodes: zone.nodes,
-									lockedNodes: lockCtrl.getZoneLocks(zoneId),
-									assignedStartpoints: lockCtrl.getAssignedStartpoints(zoneId)
+									lockedNodes: lockCtrl.getZoneLocks(zone),
+									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone)
 								},
 								time: time
 							});
-							if (data.assignStartpoint) {
-								const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, userId);
-								if (assignedStartpoint) {
-									socket.broadcast.to(zoneId).emit('assign:startpoint', {
-										user: usersCtrl.getUser(userId),
-										nodeId: assignedStartpoint,
-										time: time
-									});
-									socket.emit('assigned:startpoint', {
-										success: true,
-										nodeId: assignedStartpoint,
-										time: time
-									});
-								}
-							}
 							joinChatroom(usersCtrl)({ room: zoneId });
 						}
 					}
@@ -359,36 +355,109 @@ module.exports = function(socket) {
 	 * Remove a user's active zone, make it leave the zone's socket room, send notification in socket room with event 'leave:zone'.
 	 * Sends feedback to caller with event 'left:zone'.
 	 * Unassign starting point if needed and send 'unassign:startpoint'.
+	 * @param {Object} [data] - Contains internal informations.
+	 * @param {String} [data.zoneId] - The zone _id, if usersCtrl has deleted the information.
 	 */
 	const leaveZone = function(usersCtrl, lockCtrl) {
-		return function () {
+		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
+			var zoneId;
+			const userZoneId = usersCtrl.getZoneId(activeUser._id);
+			if (userZoneId) {
+				zoneId = userZoneId;
+				if (!data) {
+					data = {};
+				}
+				data.zoneId = zoneId;
+			}
+			else if (data && data.zoneId) {
+				zoneId = data.zoneId;
+			}
+
 			if (zoneId) {
-				usersCtrl.unregisterZone(userId, zoneId);
-				usersCtrl.leaveChatroom(userId, zoneId);
+				usersCtrl.unregisterZone(activeUser._id, zoneId);
+				usersCtrl.leaveChatroom(activeUser._id, zoneId);
 				socket.broadcast.to(zoneId).emit('leave:zone', {
-					user: usersCtrl.getUser(userId),
+					user: activeUser,
 					time: time
 				});
 				socket.emit('left:zone', {
 					success: true,
 					time: time
 				});
-				const nodeId = lockCtrl.unassignUserStartpoint(zoneId, userId);
-				if (nodeId) {
-					socket.broadcast.to(zoneId).emit('unassign:startpoint', {
-						user: usersCtrl.getUser(userId),
-						nodeId: nodeId,
-						time: time
-					});
-				}
 				socket.leave(zoneId);
 			}
 			else {
 				socket.emit('left:zone', {
 					success: false,
 					message: 'Aucune zone active.',
+					time: time
+				});
+			}
+		};
+	};
+
+	/**
+	 * Try to assign a starting point to the caller and send with 'assign:startpoint' and 'assigned:startpoint'.
+	 */
+	const assignStartpoint = function(usersCtrl, lockCtrl) {
+		return function () {
+			const time = new Date().getTime();
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			Zone.findById(zoneId).populate('nodes').exec()
+			.then(zone => {
+				if (zone) {
+					const assignedStartpoint = lockCtrl.tryAssignUserStartpoint(zone, activeUser._id);
+					if (assignedStartpoint) {
+						socket.broadcast.to(zoneId).emit('assign:startpoint', {
+							user: activeUser,
+							nodeId: assignedStartpoint,
+							time: time
+						});
+						socket.emit('assigned:startpoint', {
+							success: true,
+							nodeId: assignedStartpoint,
+							time: time
+						});
+					}
+				}
+			});
+		};
+	};
+
+	/**
+	 * Unassign starting point if needed and send 'unassign:startpoint'.
+	 * @param {string} [user=activeUser._id] - The user _id to unassign, default is self.
+	 * @param {Object} [data] - Contains internal informations.
+	 * @param {String} [data.zoneId] - The zone _id, if usersCtrl has deleted the information.
+	 * @param {String} [data.userId] - The user _id, if deletion.
+	 */
+	const unassignStartpoint = function(usersCtrl, lockCtrl) {
+		return function (data) {
+			const time = new Date().getTime();
+			var zoneId;
+			const userZoneId = usersCtrl.getZoneId(activeUser._id);
+			if (userZoneId) {
+				zoneId = userZoneId;
+			}
+			else if (data && data.zoneId) {
+				zoneId = data.zoneId;
+			}
+
+			var unassignUserId;
+			if (data && data.userId) {
+				unassignUserId = data.userId;
+			}
+			else {
+				unassignUserId = activeUser._id;
+			}
+
+			const nodeId = lockCtrl.unassignUserStartpoint(unassignUserId);
+			if (nodeId) {
+				socket.broadcast.to(zoneId).emit('unassign:startpoint', {
+					user: usersCtrl.getUser(unassignUserId) || activeUser,
+					nodeId: nodeId,
 					time: time
 				});
 			}
@@ -408,10 +477,15 @@ module.exports = function(socket) {
 	const editNodes = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+			var error;
+
+			if (!zoneId) {
+				return;
+			}
 
 			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				// Apply changes if zone exists
 				if (zone) {
@@ -421,34 +495,35 @@ module.exports = function(socket) {
 					// Iterate over user nodes
 					userNodes.forEach(userNode => {
 
-						var localNode;
-						// Iterate over local nodes to find a match
-						for (var i = 0; i < zone.nodes.length; ++i) {
-							localNode = zone.nodes[i];
-							// Find matching node
-							if (String(localNode._id) === String(userNode._id)) {
-								// Edit if node is not locked
-								if (lockCtrl.hasAccess(zone, localNode, userId)) {
+						const i = getNodeIndex(zone.nodes, userNode._id);
+						if (i > -1) {
+							var localNode = zone.nodes[i];
+							// Edit if node is not locked
+							if (lockCtrl.hasAccess(localNode._id, activeUser._id)) {
 
-									// _id and type cannot change
-									// Update position
-									localNode.position = _.extend(localNode.position, userNode.position);
-									// Update angle
-									if (userNode.angle) {
-										localNode.angle = userNode.angle;
-									}
-									// Update angle
-									localNode.scale = _.extend(localNode.scale, userNode.scale);
-									// parent cannot change
-									// Update updatedBy
-									localNode.updatedBy = userId;
-									// Update timestamp
-									localNode.updatedAt = time;
-
-									// Prepare update
-									updatedNodes.push(minifyNodeStrict(localNode));
-
+								// _id and type cannot change
+								// Update position
+								localNode.position = _.extend(localNode.position, userNode.position);
+								// Update angle
+								if (userNode.angle) {
+									localNode.angle = userNode.angle;
 								}
+								// Update angle
+								localNode.scale = _.extend(localNode.scale, userNode.scale);
+								// parent cannot change
+								// Update updatedBy
+								localNode.updatedBy = activeUser._id;
+								// Update timestamp
+								localNode.updatedAt = time;
+
+								// Prepare update
+								localNode.save()
+								.catch(err => {
+									error = err;
+									console.log('SERVER ERROR in edit:nodes', error);
+								});
+								updatedNodes.push(minifyNodeStrict(localNode));
+
 							}
 						}
 
@@ -458,8 +533,12 @@ module.exports = function(socket) {
 					zone.save()
 					.then(() => {
 
+						if (error) {
+							throw error;
+						}
+
 						socket.broadcast.to(zoneId).emit('edit:nodes', {
-							user: usersCtrl.getUser(userId),
+							user: activeUser,
 							nodes: updatedNodes,
 							time: time
 						});
@@ -523,25 +602,32 @@ module.exports = function(socket) {
 	const createNodes = function(usersCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
 
 			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				// Apply changes if zone exists
 				if (zone) {
 
 					const index = zone.nodes.length;
 					const userNodes = data.nodes;
+					if (userNodes.length > 0 && !zone.nodes) {
+						zone.nodes = [];
+					}
 					// Iterate over user nodes
 					userNodes.forEach(node => {
 
-						node.createdAt = time;
-						node.updatedAt = time;
-						node.createdBy = userId;
-						node.updatedBy = userId;
-
-						zone.nodes.push(node);
+						node.zone = zone;
+						node.createdBy = activeUser._id;
+						node.updatedBy = activeUser._id;
+						const newNode = new Node(node);
+						newNode.save();
+						zone.nodes.push(newNode);
 
 					});
 
@@ -551,14 +637,14 @@ module.exports = function(socket) {
 
 						// Return created nodes with simple structure
 						var nodes = saved.nodes.slice(index).map(minifyNodeSoft);
+						socket.broadcast.to(zoneId).emit('create:nodes', {
+							user: activeUser,
+							nodes: nodes,
+							time: time
+						});
 						// Send back localId
 						nodes.forEach((node, nIndex) => {
 							node.localId = userNodes[nIndex].localId;
-						});
-						socket.broadcast.to(zoneId).emit('create:nodes', {
-							user: usersCtrl.getUser(userId),
-							nodes: nodes,
-							time: time
 						});
 						socket.emit('created:nodes', {
 							success: true,
@@ -608,6 +694,7 @@ module.exports = function(socket) {
 	/**
 	 * Delete a zone's nodes and send request in socket room with event 'delete:nodes'.
 	 * Sends feedback to caller with event 'deleted:nodes'.
+	 * Unassign starting point if needed and send 'unassign:startpoint'.
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {Object[]} data.nodes - The nodes to delete.
 	 * @param {string} data.nodes[]._id - The unique _id of a node.
@@ -615,87 +702,72 @@ module.exports = function(socket) {
 	const deleteNodes = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
-			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
-			.then(zone => {
-				// Apply changes if zone exists
-				if (zone) {
+			if (!zoneId) {
+				return;
+			}
 
-					const userNodes = data.nodes;
-					var deletedNodes = [];
-					// Iterate over user nodes
-					userNodes.forEach(userNode => {
-
-						var localNode;
-						// Iterate over local nodes to find a match
-						for (var i = 0; i < zone.nodes.length; ++i) {
-							localNode = zone.nodes[i];
-							// Find matching node
-							if (String(localNode._id) === String(userNode._id)) {
-								// Delete if node is not locked
-								if (lockCtrl.hasAccess(zone, localNode, userId)) {
-
-									// Delete
-									zone.nodes.splice(i, 1);
-
-									// Delete and prepare update
-									deletedNodes.push({ _id: localNode._id });
-
-								}
-							}
-						}
-
-					});
-
-					// Save and emit
-					zone.save()
-					.then(() => {
-
-						socket.broadcast.to(zoneId).emit('delete:nodes', {
-							user: usersCtrl.getUser(userId),
-							nodes: deletedNodes,
-							time: time
-						});
-						socket.emit('deleted:nodes', {
-							success: true,
-							nodes: deletedNodes,
-							time: time
-						});
-
-					// Log performance
-					const end = new Date().getTime();
-					console.log('delete:nodes', deletedNodes.length + ' nodes in ' + (end - time) + ' ms');
-
-					})
-					// Catch model validation erors
-					.catch(error => {
-						socket.emit('deleted:nodes', {
-							success: false,
-							error: error,
-							nodes: userNodes,
-							time: time
-						});
-					});
-
+			// Convert to ObjectId
+			const ids = data.nodes.map(node => {
+				try {
+					if (lockCtrl.hasAccess(node._id, activeUser._id)) {
+						return new ObjectId(node._id);
+					}
 				}
-				// If zone does not exist, abort
-				else {
-					socket.emit('deleted:nodes', {
-						success: false,
-						message: 'Zone introuvable.',
-						nodes: data.nodes,
-						time: time
-					});
+				catch (error) {
+					console.log('SERVER ERROR in delete:nodes', error);
 				}
+			});
+
+			// Delete the nodes
+			Node.find({ _id: { $in: ids } }).exec()
+			.then(nodes => {
+				var deletedNodes = [];
+				nodes.forEach(node => {
+					node.remove();
+					deletedNodes.push({ _id: node._id });
+				});
+				return deletedNodes;
+			})
+			.then(deletedNodes => {
+				// Unassign
+				deletedNodes.forEach(node => {
+					var assignedUserId = lockCtrl.unassignStartpointUser(node._id);
+					if (assignedUserId) {
+						unassignStartpoint(usersCtrl, lockCtrl)({ userId: assignedUserId });
+					}
+				});
+				// Emit
+				socket.broadcast.to(zoneId).emit('delete:nodes', {
+					user: activeUser,
+					nodes: deletedNodes,
+					time: time
+				});
+				socket.emit('deleted:nodes', {
+					success: true,
+					nodes: deletedNodes,
+					time: time
+				});
+
+				// Log performance
+				const end = new Date().getTime();
+				console.log('delete:nodes', deletedNodes.length + ' nodes in ' + (end - time) + ' ms');
+
+				// Update the zone
+				Zone.findById(zoneId).populate('nodes').exec()
+				.then(zone => {
+					zone.updatedBy = activeUser._id;
+					zone.updatedAt = time;
+					zone.save();
+				});
 			})
 			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
 			.catch(error => {
 				socket.emit('deleted:nodes', {
 					success: false,
 					error: error,
-					nodes: data.nodes,
+					nodes: deletedNodes,
 					time: time
 				});
 				console.log('SERVER ERROR in delete:nodes', error);
@@ -713,49 +785,27 @@ module.exports = function(socket) {
 	const lockNodes = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
-			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
-			.then(zone => {
-				// Apply changes if zone exists
-				if (zone) {
-					const userNodes = data.nodes;
-					const newLock = lockCtrl.lockNodes(zone, userNodes, userId);
-					// Save and emit
-					socket.broadcast.to(zoneId).emit('lock:nodes', {
-						user: usersCtrl.getUser(userId),
-						nodes: newLock,
-						time: time
-					});
-					socket.emit('locked:nodes', {
-						success: true,
-						nodes: newLock,
-						time: time
-					});
-					// Log performance
-					const end = new Date().getTime();
-					console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
-				}
-				// If zone does not exist, abort
-				else {
-					socket.emit('locked:nodes', {
-						success: false,
-						message: 'Zone introuvable.',
-						nodes: data.nodes,
-						time: time
-					});
-				}
-			})
-			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
-			.catch(error => {
-				socket.emit('locked:nodes', {
-					success: false,
-					error: error,
-					nodes: data.nodes,
-					time: time
-				});
-				console.log('SERVER ERROR in lock:nodes', error);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
+
+			const newLock = lockCtrl.lockNodes(data.nodes, activeUser._id);
+			// Emit
+			socket.broadcast.to(zoneId).emit('lock:nodes', {
+				user: activeUser,
+				nodes: newLock,
+				time: time
 			});
+			socket.emit('locked:nodes', {
+				success: true,
+				nodes: newLock,
+				time: time
+			});
+			// Log performance
+			const end = new Date().getTime();
+			console.log('lock:nodes', newLock.length + ' nodes in ' + (end - time) + ' ms');
 		};
 	};
 
@@ -769,48 +819,26 @@ module.exports = function(socket) {
 	const unlockNodes = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
-			// Find the edited zone
-			Zone.findById(zoneId, '-salt -password').exec()
-			.then(zone => {
-				// Apply changes if zone exists
-				if (zone) {
-					const userNodes = data.nodes;
-					const newUnlock = lockCtrl.unlockNodes(zone, userNodes, userId);
-					// Save and emit
-					socket.broadcast.to(zoneId).emit('unlock:nodes', {
-						nodes: newUnlock,
-						time: time
-					});
-					socket.emit('unlocked:nodes', {
-						success: true,
-						nodes: newUnlock,
-						time: time
-					});
-					// Log performance
-					const end = new Date().getTime();
-					console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
-				}
-				// If zone does not exist, abort
-				else {
-					socket.emit('unlocked:nodes', {
-						success: false,
-						message: 'Zone introuvable.',
-						nodes: data.nodes,
-						time: time
-					});
-				}
-			})
-			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
-			.catch(error => {
-				socket.emit('unlocked:nodes', {
-					success: false,
-					error: error,
-					nodes: data.nodes,
-					time: time
-				});
-				console.log('SERVER ERROR in unlock:nodes', error);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
+
+			const newUnlock = lockCtrl.unlockNodes(data.nodes, activeUser._id);
+			// Emit
+			socket.broadcast.to(zoneId).emit('unlock:nodes', {
+				nodes: newUnlock,
+				time: time
 			});
+			socket.emit('unlocked:nodes', {
+				success: true,
+				nodes: newUnlock,
+				time: time
+			});
+			// Log performance
+			const end = new Date().getTime();
+			console.log('unlock:nodes', newUnlock.length + ' nodes in ' + (end - time) + ' ms');
 		};
 	};
 
@@ -822,7 +850,12 @@ module.exports = function(socket) {
 	const pingPosition = function(usersCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
+
 			const position = {
 				x: Number(data.position.x) || 0.0,
 				y: Number(data.position.y) || 0.0,
@@ -831,7 +864,7 @@ module.exports = function(socket) {
 
 			if (zoneId) {
 				socket.to(zoneId).emit('ping:position', {
-					user: usersCtrl.getUser(userId),
+					user: activeUser,
 					position: position,
 					time: time
 				});
@@ -845,8 +878,14 @@ module.exports = function(socket) {
 	const startSimulation = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
-			socket.broadcast.to(usersCtrl.getZoneId(userId)).emit('start:simulation', {
-				user: usersCtrl.getUser(userId),
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
+
+			if (!zoneId) {
+				return;
+			}
+
+			socket.broadcast.to(usersCtrl.getZoneId(activeUser._id)).emit('start:simulation', {
+				user: activeUser,
 				time: time
 			});
 			tmp.simulation = { start: time };
@@ -859,32 +898,41 @@ module.exports = function(socket) {
 	const endSimulation = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(userId);
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
-			socket.broadcast.to(usersCtrl.getZoneId(userId)).emit('end:simulation', {
-				user: usersCtrl.getUser(userId),
+			if (!zoneId) {
+				return;
+			}
+
+			socket.broadcast.to(usersCtrl.getZoneId(activeUser._id)).emit('end:simulation', {
+				user: activeUser,
 				time: time
 			});
 			if (!tmp.simulation || !tmp.simulation.start) {
 				return;
 			}
 			const simulationTime = (time - tmp.simulation.start) / 1000;
-			Zone.findById(zoneId, '-salt -password').exec()
+			Zone.findById(zoneId, '-salt -password').populate('nodes').exec()
 			.then(zone => {
 				if (!zone) {
 					return;
 				}
 				zone.stats.playedGames++;
 				zone.stats.playedTime += simulationTime;
+				zone.save();
 			})
 			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
 			.catch(error => {
 				console.log('SERVER ERROR in endSimulation', error);
 			});
-			User.findById(userId, '-salt -password').exec()
+			User.findById(activeUser._id, '-salt -password').exec()
 			.then(user => {
+				if (!user) {
+					return;
+				}
 				user.stats.playedGames++;
 				user.stats.playedTime += simulationTime;
+				user.save();
 			})
 			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
 			.catch(error => {
@@ -930,6 +978,22 @@ module.exports = function(socket) {
 		};
 	};
 
+	/**
+	 * Find the index of a node in a nodes array by its id.
+	 * @private
+	 * @param {Object[]} nodes - The array of nodes.
+	 * @param {ObjectId|string} nodeId - The _id of a node.
+	 * @returns {number} The index of a node in a nodes array.
+	 */
+	const getNodeIndex = function(nodes, nodeId) {
+		for (var i = 0; i < nodes.length; ++i) {
+			if (nodeId && nodes[i]._id.toString() === nodeId.toString()) {
+				return i;
+			}
+		}
+		return -1;
+	};
+
 	return {
 		onInit: onInit,
 		initChat: initChat,
@@ -942,6 +1006,8 @@ module.exports = function(socket) {
 		sendMessage: sendMessage,
 		joinZone: joinZone,
 		leaveZone: leaveZone,
+		assignStartpoint: assignStartpoint,
+		unassignStartpoint: unassignStartpoint,
 		editNodes: editNodes,
 		createNodes: createNodes,
 		deleteNodes: deleteNodes,

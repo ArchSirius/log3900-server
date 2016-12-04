@@ -33,7 +33,7 @@ POST   /auth/login
 
 /*************************
 * LOG3900-01 A16 backend *
-* Socket.io 28/11/16     *
+* Socket.io 01/12/16     *
 *************************/
 
 /*
@@ -46,6 +46,8 @@ disconnect
 join:chatroom
 join:zone
 leave:zone
+assign:startpoint
+unassign:startpoint
 send:group:message
 send:private:message
 get:private:messages
@@ -326,6 +328,19 @@ Body       : zoneId           [String]
 * leave:zone *
 *************/
 Description: Leave a zone's room
+Body       : --
+
+/********************
+* assign:startpoint *
+********************/
+Description: Try to get a startpoint assigned
+  
+Body       : --
+
+/**********************
+* unassign:startpoint *
+**********************/
+Description: Unassign startpoint
 Body       : --
 
 /*************

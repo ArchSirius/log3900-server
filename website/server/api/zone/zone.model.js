@@ -4,71 +4,6 @@ import crypto from 'crypto';
 mongoose.Promise = require('bluebird');
 import mongoose, {Schema} from 'mongoose';
 
-var NodeSchema = new Schema({
-  type: {
-    type: String,
-    enum: [
-      'cylindre',
-      'depart',
-      'ligne',
-      'mur',
-      'robot',
-      'segment',
-      'table'
-    ],
-    required: true
-  },
-  position: {
-    x: {
-      type: Number,
-      default: 0.0
-    },
-    y: {
-      type: Number,
-      default: 0.0
-    },
-    z: {
-      type: Number,
-      default: 0.0
-    }
-  },
-  angle: {
-    type: Number,
-    default: 0.0
-  },
-  scale: {
-    x: {
-      type: Number,
-      default: 1.0
-    },
-    y: {
-      type: Number,
-      default: 1.0
-    },
-    z: {
-      type: Number,
-      default: 1.0
-    }
-  },
-  parent: {
-    type: Schema.Types.ObjectId,
-    default: null
-  },
-  createdBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  updatedBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User'
-  }
-}, {
-  timestamps: {
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
-  }
-});
-
 var ZoneSchema = new Schema({
   name: {
     type: String,
@@ -90,10 +25,6 @@ var ZoneSchema = new Schema({
       default: 0
     }
   },
-  nodes: {
-    type: [ NodeSchema ],
-    default: []
-  },
   createdBy: {
     type: Schema.Types.ObjectId,
     ref: 'User'
@@ -103,10 +34,19 @@ var ZoneSchema = new Schema({
     ref: 'User'
   }
 }, {
-  timestamps: {
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
-  }
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+/**
+ * Virtuals
+ */
+
+ZoneSchema.virtual('nodes', {
+  ref: 'Node',
+  localField: '_id',
+  foreignField: 'zone'
 });
 
 /**

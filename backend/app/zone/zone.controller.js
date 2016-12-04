@@ -10,6 +10,7 @@
 'use strict';
 
 var _    = require('lodash');
+var Node = require('../node/node.model');
 var Zone = require('./zone.model');
 
 function respondWithResult(res, statusCode) {
@@ -74,7 +75,9 @@ function handleError(res, statusCode) {
  * restriction: authenticated
  */
 exports.index = function(req, res) {
-  return Zone.find({}, '-salt -password').populate('createdBy updatedBy', 'username').exec()
+  return Zone.find({}, '-salt -password')
+    .populate('nodes')
+    .populate('createdBy updatedBy', 'username').exec()
     .then(zones => {
       zones.forEach((zone, index) => {
         zones[index].salt = undefined;
@@ -94,7 +97,9 @@ exports.index = function(req, res) {
  * restriction: authenticated
  */
 exports.show = function(req, res) {
-  return Zone.findById(req.params.id).populate('createdBy updatedBy', 'username').exec()
+  return Zone.findById(req.params.id)
+    .populate('nodes')
+    .populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(zone => {
       if (zone) {
@@ -119,6 +124,13 @@ exports.show = function(req, res) {
  * restriction: authenticated
  */
 exports.create = function(req, res) {
+  if (req.body.private && !req.body.password) {
+    return res.status(401).json({
+      success: false,
+      time: new Date().getTime(),
+      data: {}
+    });
+  }
   if (req.body.hasOwnProperty('_id')) {
     delete req.body._id;
   }
@@ -126,20 +138,42 @@ exports.create = function(req, res) {
   const userId = req.decoded._id;
   req.body.createdBy = userId;
   req.body.updatedBy = userId;
+  const nodes = req.body.nodes;
   if (req.body.nodes) {
-    req.body.nodes.forEach(node => {
+    delete req.body.nodes;
+  }
+  var zone = new Zone(req.body);
+  if (nodes) {
+    if (!zone.nodes) {
+      zone.nodes = [];
+    }
+    nodes.forEach(node => {
+      node.zone = zone;
       node.createdBy = userId;
       node.updatedBy = userId;
+      zone.nodes.push(new Node(node));
     });
   }
-  if (req.body.private && ! req.body.password) {
-    return res.status(401).json({
-      success: false,
-      time: new Date().getTime(),
-      data: {}
-    });
+  if (!zone.nodes) {
+    zone.nodes = [];
   }
-  return Zone.create(req.body)
+  var nbStart = 0;
+  zone.nodes.forEach(node => {
+    if (node.type === 'depart') {
+      ++nbStart;
+    }
+  });
+  while (nbStart < 4) {
+    zone.nodes.push(newNode = new Node({
+      zone: zone,
+      type: 'depart',
+      position: { x: nbStart, y: nbStart },
+      createdBy: userId,
+      updatedBy: userId
+    }));
+    ++nbStart;
+  }
+  return zone.save()
     .then(zone => {
       zone.salt = undefined;
       zone.password = undefined;
@@ -168,7 +202,9 @@ exports.update = function(req, res) {
       node.updatedBy = userId;
     });
   }
-  return Zone.findById(req.params.id).populate('createdBy updatedBy', 'username').exec()
+  return Zone.findById(req.params.id)
+    .populate('nodes')
+    .populate('createdBy updatedBy', 'username').exec()
     .then(handleEntityNotFound(res))
     .then(zone => {
       if (zone && !zone.private && req.body.private && !req.body.password) {
@@ -197,8 +233,16 @@ exports.update = function(req, res) {
  * restriction: authenticated
  */
 exports.destroy = function(req, res) {
-  return Zone.findById(req.params.id, '-salt -password').exec()
+  return Zone.findById(req.params.id, '-salt -password').populate('nodes').exec()
     .then(handleEntityNotFound(res))
+    .then(zone => {
+      if (zone.nodes) {
+        zone.nodes.forEach(node => {
+          node.remove();
+        });
+      }
+      return zone;
+    })
     .then(removeEntity(res))
     .catch(handleError(res));
 }
