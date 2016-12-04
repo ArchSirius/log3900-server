@@ -432,6 +432,7 @@ Body       : from [Object]
 ***********************/
 Description: Fetch private conversation's history
 Body       : success  [Boolean]
+           : to       [String] // For Louis
            : messages [Array]
            : time     [Integer]
 
