@@ -919,6 +919,7 @@ module.exports = function(socket) {
 				}
 				zone.stats.playedGames++;
 				zone.stats.playedTime += simulationTime;
+				zone.save();
 			})
 			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
 			.catch(error => {
@@ -926,8 +927,12 @@ module.exports = function(socket) {
 			});
 			User.findById(activeUser._id, '-salt -password').exec()
 			.then(user => {
+				if (!user) {
+					return;
+				}
 				user.stats.playedGames++;
 				user.stats.playedTime += simulationTime;
+				user.save();
 			})
 			// Catch server errors. If ANY is detected, the code has to be fixed ASAP.
 			.catch(error => {
