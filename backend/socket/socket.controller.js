@@ -390,7 +390,10 @@ module.exports = function(socket) {
 				socket.leave(zoneId);
 				const unlockedNodes = lockCtrl.unlockAllUserNodes(activeUser._id);
 				if (unlockedNodes && unlockedNodes.length > 0) {
-					unlockNodes(usersCtrl, lockCtrl)(unlockedNodes);
+					unlockNodes(usersCtrl, lockCtrl)({
+						nodes: unlockedNodes,
+						dry: true
+					});
 				}
 			}
 			else {
@@ -821,17 +824,20 @@ module.exports = function(socket) {
 	 * @param {Object} data - The data received from the caller in JSON form.
 	 * @param {Object[]} data.nodes - The nodes to unlock.
 	 * @param {string} nodes[]._id - The unique _id of a node.
+	 * @param {boolean} [dry] - Verbose only. Used only from the server.
 	 */
 	const unlockNodes = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
-			if (!zoneId) {
-				return;
+			var newUnlock = [];
+			if (data.dry) {
+				newUnlock = data.nodes;
 			}
-
-			const newUnlock = lockCtrl.unlockNodes(data.nodes, activeUser._id);
+			else {
+				newUnlock = lockCtrl.unlockNodes(data.nodes, activeUser._id);
+			}
 			// Emit
 			socket.broadcast.to(zoneId).emit('unlock:nodes', {
 				nodes: newUnlock,
