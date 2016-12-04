@@ -24,9 +24,6 @@ export class ZoneComponent {
     this.$scope.id = this.$state.params.id;
     this.apiCall.getZone(this.$scope.id)
     .then(result => {
-      if (!result.thumbnail) {
-        result.thumbnail = 'http://www.polymtl.ca/sc/img/logoType/logoPOLY/poly_bloc_rgb.png';
-      }
       this.$scope.zone = result;
     }, error => {
       console.log('error', error);
