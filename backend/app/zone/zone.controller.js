@@ -124,6 +124,13 @@ exports.show = function(req, res) {
  * restriction: authenticated
  */
 exports.create = function(req, res) {
+  if (req.body.private && !req.body.password) {
+    return res.status(401).json({
+      success: false,
+      time: new Date().getTime(),
+      data: {}
+    });
+  }
   if (req.body.hasOwnProperty('_id')) {
     delete req.body._id;
   }
@@ -141,17 +148,30 @@ exports.create = function(req, res) {
       zone.nodes = [];
     }
     nodes.forEach(node => {
+      node.zone = zone;
       node.createdBy = userId;
       node.updatedBy = userId;
       zone.nodes.push(new Node(node));
     });
   }
-  if (req.body.private && ! req.body.password) {
-    return res.status(401).json({
-      success: false,
-      time: new Date().getTime(),
-      data: {}
-    });
+  if (!zone.nodes) {
+    zone.nodes = [];
+  }
+  var nbStart = 0;
+  zone.nodes.forEach(node => {
+    if (node.type === 'depart') {
+      ++nbStart;
+    }
+  });
+  while (nbStart < 4) {
+    zone.nodes.push(newNode = new Node({
+      zone: zone,
+      type: 'depart',
+      position: { x: nbStart, y: nbStart },
+      createdBy: userId,
+      updatedBy: userId
+    }));
+    ++nbStart;
   }
   return zone.save()
     .then(zone => {
