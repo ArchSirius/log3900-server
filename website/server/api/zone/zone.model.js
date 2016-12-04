@@ -14,7 +14,6 @@ var ZoneSchema = new Schema({
   },
   password: String,
   salt: String,
-  thumbnail: String,
   stats: {
     playedGames: {
       type: Number,
