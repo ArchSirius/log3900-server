@@ -117,8 +117,16 @@ export function patch(req, res) {
 
 // Deletes a Zone from the DB
 export function destroy(req, res) {
-  return Zone.findById(req.params.id).exec()
+  return Zone.findById(req.params.id, '-salt -password').populate('nodes').exec()
     .then(handleEntityNotFound(res))
+    .then(zone => {
+      if (zone.nodes) {
+        zone.nodes.forEach(node => {
+          node.remove();
+        });
+      }
+      return zone;
+    })
     .then(removeEntity(res))
     .catch(handleError(res));
 }

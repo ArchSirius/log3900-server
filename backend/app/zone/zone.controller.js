@@ -213,8 +213,16 @@ exports.update = function(req, res) {
  * restriction: authenticated
  */
 exports.destroy = function(req, res) {
-  return Zone.findById(req.params.id, '-salt -password').exec()
+  return Zone.findById(req.params.id, '-salt -password').populate('nodes').exec()
     .then(handleEntityNotFound(res))
+    .then(zone => {
+      if (zone.nodes) {
+        zone.nodes.forEach(node => {
+          node.remove();
+        });
+      }
+      return zone;
+    })
     .then(removeEntity(res))
     .catch(handleError(res));
 }
