@@ -15,6 +15,12 @@ var lock = {};
 var assignedStartNodes = {};
 
 /**
+ * Contains the zones in simulation.
+ * @private
+ */
+var inSimulation = [];
+
+/**
  * Return the (un)locked status of a node.
  * @param {ObjectId|string} nodeId - The target node _id.
  * @returns {boolean} Locked status.
@@ -252,6 +258,30 @@ exports.getZoneLocksAsync = function(zoneId, callback) {
 		}
 		return res;
 	});
+};
+
+/**
+ * Set a zone in simulation/edition mode
+ * @param {ObjectId|string} zoneId - The unique _id of a zone.
+ * @param {boolean} isInSimulation - Simulation status.
+ */
+exports.setSimulation = function(zoneId, isInSimulation) {
+	const index = inSimulation.indexOf(zoneId.toString());
+	if (isInSimulation && index === -1) {
+		inSimulation.push(zoneId.toString());
+	}
+	else if (!isInSimulation && index > -1) {
+		inSimulation.splice(index, 1);
+	}
+};
+
+/**
+ * Get a zone simulation status
+ * @param {ObjectId|string} zoneId - The unique _id of a zone.
+ * @returns {boolean} The simulation status.
+ */
+exports.isInSimulation = function(zoneId) {
+	return inSimulation.indexOf(zoneId.toString()) > -1;
 };
 
 /**
