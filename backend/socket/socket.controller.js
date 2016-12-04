@@ -388,6 +388,10 @@ module.exports = function(socket) {
 					time: time
 				});
 				socket.leave(zoneId);
+				const unlockedNodes = lockCtrl.unlockAllUserNodes(activeUser._id);
+				if (unlockedNodes && unlockedNodes.length > 0) {
+					unlockNodes(usersCtrl, lockCtrl)(unlockedNodes);
+				}
 			}
 			else {
 				socket.emit('left:zone', {
