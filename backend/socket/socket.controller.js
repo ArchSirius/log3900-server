@@ -315,7 +315,8 @@ module.exports = function(socket) {
 									users: usersCtrl.getZoneUsers(zoneId),
 									nodes: zone.nodes,
 									lockedNodes: lockCtrl.getZoneLocks(zone),
-									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone)
+									assignedStartpoints: lockCtrl.getAssignedStartpoints(zone),
+									simulation: lockCtrl.isInSimulation(zoneId)
 								},
 								time: time
 							});
@@ -876,7 +877,7 @@ module.exports = function(socket) {
 	/**
 	 * Start a simulation and send request in socket room with event 'start:simulation'.
 	 */
-	const startSimulation = function(usersCtrl) {
+	const startSimulation = function(usersCtrl, lockCtrl) {
 		return function () {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
@@ -889,6 +890,7 @@ module.exports = function(socket) {
 				user: activeUser,
 				time: time
 			});
+			lockCtrl.setSimulation(zoneId, true);
 			tmp.simulation = { start: time };
 		};
 	};
@@ -896,7 +898,7 @@ module.exports = function(socket) {
 	/**
 	 * End a simulation and send request in socket room with event 'end:simulation'.
 	 */
-	const endSimulation = function(usersCtrl) {
+	const endSimulation = function(usersCtrl, lockCtrl) {
 		return function () {
 			const time = new Date().getTime();
 			const zoneId = usersCtrl.getZoneId(activeUser._id);
@@ -909,6 +911,7 @@ module.exports = function(socket) {
 				user: activeUser,
 				time: time
 			});
+			lockCtrl.setSimulation(zoneId, false);
 			if (!tmp.simulation || !tmp.simulation.start) {
 				return;
 			}
