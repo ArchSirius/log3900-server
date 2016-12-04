@@ -314,7 +314,7 @@ Body       : to   [String]
 * get:private:messages *
 ***********************/
 Description: Fetch private conversation's history
-Body       : activeUser._id [String]
+Body       : userId [String]
 
 /************
 * join:zone *
@@ -334,7 +334,6 @@ Body       : --
 * assign:startpoint *
 ********************/
 Description: Try to get a startpoint assigned
-
 Body       : --
 
 /**********************
@@ -433,7 +432,6 @@ Body       : from [Object]
 ***********************/
 Description: Fetch private conversation's history
 Body       : success  [Boolean]
-           : to       [String]
            : messages [Array]
            : time     [Integer]
 

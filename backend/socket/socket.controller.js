@@ -233,13 +233,12 @@ module.exports = function(socket) {
 	/**
 	 * Fetch a private conversation's latest messages and send with event 'get:private:messages'.
 	 * @param {Object} data - The data received from the caller in JSON form.
-	 * @param {string} data.activeUser._id - The other user _id in the conversation.
+	 * @param {string} data.userId - The other user _id in the conversation.
 	 */
 	const getPrivateMessages = function(data) {
-		msgCtrl.fetchPrivateMessages(activeUser._id, data.activeUser._id, messages => {
+		msgCtrl.fetchPrivateMessages(activeUser._id, data.userId, messages => {
 			socket.emit('get:private:messages', {
 				success: true,
-				to: data.activeUser._id,
 				messages: messages,
 				time: new Date().getTime()
 			});
