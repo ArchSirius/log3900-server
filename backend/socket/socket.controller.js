@@ -318,9 +318,6 @@ module.exports = function(socket) {
 								},
 								time: time
 							});
-							if (data.assignStartpoint) {
-								assignStartpoint(usersCtrl, lockCtrl)();
-							}
 							joinChatroom(usersCtrl)({ room: zoneId });
 						}
 					}
@@ -365,13 +362,18 @@ module.exports = function(socket) {
 		return function (data) {
 			const time = new Date().getTime();
 			var zoneId;
-			if (usersCtrl.getZoneId(activeUser._id)) {
-				zoneId = usersCtrl.getZoneId(activeUser._id);
+			const userZoneId = usersCtrl.getZoneId(activeUser._id);
+			if (userZoneId) {
+				zoneId = userZoneId;
+				if (!data) {
+					data = {};
+				}
 				data.zoneId = zoneId;
 			}
 			else if (data && data.zoneId) {
 				zoneId = data.zoneId;
 			}
+
 			if (zoneId) {
 				usersCtrl.unregisterZone(activeUser._id, zoneId);
 				usersCtrl.leaveChatroom(activeUser._id, zoneId);
@@ -383,7 +385,6 @@ module.exports = function(socket) {
 					success: true,
 					time: time
 				});
-				unassignStartpoint(usersCtrl, lockCtrl)(data);
 				socket.leave(zoneId);
 			}
 			else {
@@ -435,7 +436,14 @@ module.exports = function(socket) {
 	const unassignStartpoint = function(usersCtrl, lockCtrl) {
 		return function (data) {
 			const time = new Date().getTime();
-			const zoneId = usersCtrl.getZoneId(activeUser._id) || data ? data.zoneId : undefined;
+			var zoneId;
+			const userZoneId = usersCtrl.getZoneId(activeUser._id);
+			if (userZoneId) {
+				zoneId = userZoneId;
+			}
+			else if (data && data.zoneId) {
+				zoneId = data.zoneId;
+			}
 
 			var unassignUserId;
 			if (data && data.userId) {
