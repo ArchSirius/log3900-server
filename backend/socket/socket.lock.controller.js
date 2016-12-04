@@ -225,7 +225,7 @@ exports.getAssignedStartpoints = function(zone) {
 	var res = [];
 	zone.nodes.forEach(node => {
 		if (node.type === 'depart') {
-			const userId = this.getStartpointUser[node._id.toString()];
+			const userId = this.getStartpointUser(node._id.toString());
 			if (userId) {
 				res.push({
 					nodeId: node._id,
