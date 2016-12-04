@@ -878,6 +878,7 @@ module.exports = function(socket) {
 	const startSimulation = function(usersCtrl) {
 		return function () {
 			const time = new Date().getTime();
+			const zoneId = usersCtrl.getZoneId(activeUser._id);
 
 			if (!zoneId) {
 				return;
