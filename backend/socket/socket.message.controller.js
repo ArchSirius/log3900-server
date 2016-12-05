@@ -56,7 +56,7 @@ exports.fetchGroupMessages = function(name, callback, limit) {
 		if (channel) {
 			Message
 			.find({ channel: channel })
-			.sort({ createdAt: 1 })
+			.sort({ createdAt: -1 })
 			.limit(limit || 100)
 			.populate({
 				path: 'createdBy',
@@ -65,7 +65,7 @@ exports.fetchGroupMessages = function(name, callback, limit) {
 			.select('text createdBy createdAt')
 			.exec()
 			.then(messages => {
-				callback(messages);
+				callback(messages.reverse());
 			});
 		}
 		else {
@@ -94,7 +94,7 @@ exports.fetchPrivateMessages = function(userA, userB, callback, limit) {
 		if (chatRelation) {
 			Message
 			.find({ channel: chatRelation.channel })
-			.sort({ createdAt: 1 })
+			.sort({ createdAt: -1 })
 			.limit(limit || 100)
 			.populate({
 				path: 'createdBy',
@@ -103,7 +103,7 @@ exports.fetchPrivateMessages = function(userA, userB, callback, limit) {
 			.select('text createdBy createdAt')
 			.exec()
 			.then(messages => {
-				callback(messages);
+				callback(messages.reverse());
 			});
 		}
 		else {
